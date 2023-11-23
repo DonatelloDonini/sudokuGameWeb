@@ -1,0 +1,75 @@
+:root{
+  --background: #001F54;
+  --text: #FEFCFB;
+  --container: #0A1128;
+  --accent: #1282A2;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html, body{
+  height: 100%;
+  width: 100%;
+}
+
+body{
+  background-color: var(--background);
+  display: flex;
+  flex-direction: column;
+}
+
+header{
+  padding: 2rem;
+  background-color: var(--container);
+  text-align: center;
+  color: var(--text);
+}
+
+#gamePlay{
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin: auto 0;
+}
+
+#sudokuGrid{
+  --grid_dimensions: 60vh;
+  --thin_border: 1px solid black;
+  --thicc_border: 3px solid black;
+  background-color: var(--text);
+  height: var(--grid_dimensions);
+  aspect-ratio: 1/1;
+  border-collapse: collapse;
+  border: var(--thicc_border);
+}
+
+#sudokuGrid tr td{
+  height: calc(var(--grid_dimensions) / 9);
+  width: calc(var(--grid_dimensions) / 9);
+  font-family: sans-serif;
+  text-align: center;
+  border: var(--thin_border);
+}
+
+#sudokuGrid tr:nth-child(3),
+#sudokuGrid tr:nth-child(6){
+  border-bottom: var(--thicc_border);
+}
+
+#sudokuGrid tr td:nth-child(3),
+#sudokuGrid tr td:nth-child(6){
+  border-right: var(--thicc_border);
+}
+
+@keyframes moveFromCenter {
+  from {
+    transform: translate(0%, 0%);
+  }
+  to {
+    transform: rotate(0deg 90deg) translate(100px) rotate(0deg 90deg);
+  }
+}
