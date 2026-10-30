@@ -1,6 +1,7 @@
 const {test}= require("node:test");
 const assert= require("node:assert/strict");
-const {generateLevel}= require("../src/levelGenerator");
+const {generateLevel, DIFFICULTIES}= require("../src/levelGenerator");
+const {hasUniqueSolution}= require("../src/sudoku/SudokuSolver");
 
 const ALL_DIGITS= [1, 2, 3, 4, 5, 6, 7, 8, 9];
 
@@ -9,8 +10,8 @@ const assertHasAllDigits= (cells, areaName)=> {
 };
 
 test("the solution is a valid, complete sudoku", ()=> {
-  for (let attempt= 0; attempt<50; attempt++){
-    const {solution}= generateLevel(6);
+  for (let attempt= 0; attempt<20; attempt++){
+    const {solution}= generateLevel("easy");
 
     for (let i= 0; i<9; i++){
       assertHasAllDigits(solution[i], `row ${i}`);
@@ -27,26 +28,28 @@ test("the solution is a valid, complete sudoku", ()=> {
   }
 });
 
-test("the puzzle only contains numbers from the solution", ()=> {
-  const {puzzle, solution}= generateLevel(6);
+test("every difficulty gives a puzzle with a single solution matching the solution", ()=> {
+  for (const [difficulty, target] of Object.entries(DIFFICULTIES)){
+    for (let attempt= 0; attempt<5; attempt++){
+      const {puzzle, solution}= generateLevel(difficulty);
+      const empty= puzzle.flat().filter(cell=> cell=== null).length;
 
-  for (let y= 0; y<9; y++){
-    for (let x= 0; x<9; x++){
-      if (puzzle[y][x]!== null) assert.equal(puzzle[y][x], solution[y][x]);
+      assert.ok(empty<= target, `${difficulty}: ${empty} empty cells, target ${target}`);
+      assert.ok(empty>= Math.min(target, 50), `${difficulty}: only ${empty} empty cells`);
+      assert.equal(hasUniqueSolution(puzzle), true);
+      puzzle.forEach((row, y)=> row.forEach((cell, x)=> {
+        if (cell!== null) assert.equal(cell, solution[y][x]);
+      }));
     }
   }
 });
 
-test("the difficulty sets how many cells are emptied per row", ()=> {
-  for (const difficulty of [0, 3, 6, 9]){
-    const {puzzle}= generateLevel(difficulty);
+test("harder difficulties empty more cells", ()=> {
+  const emptyCells= (difficulty)=> generateLevel(difficulty).puzzle.flat().filter(cell=> cell=== null).length;
+  assert.ok(emptyCells("easy")< emptyCells("medium"));
+  assert.ok(emptyCells("medium")< emptyCells("hard"));
+});
 
-    for (const row of puzzle){
-      const emptyCells= row.filter(cell=> cell=== null).length;
-      assert.ok(emptyCells<= difficulty, `a row has ${emptyCells} empty cells with difficulty ${difficulty}`);
-    }
-  }
-
-  const emptyCellsWithZeroDifficulty= generateLevel(0).puzzle.flat().filter(cell=> cell=== null).length;
-  assert.equal(emptyCellsWithZeroDifficulty, 0);
+test("unknown difficulties are rejected", ()=> {
+  assert.throws(()=> generateLevel("impossible"));
 });

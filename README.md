@@ -1,21 +1,41 @@
 # sudokuGameWeb
- The classic Sudoku game, made in JavaScript.
+ The classic Sudoku game, made in JavaScript: solo games with a leaderboard and online battles between players with the same elo.
+
+## Features
+- **Playable on any screen**: click or tap a cell and use the number pad, or play with the keyboard. The layout adapts from phones to large monitors.
+- **Every puzzle has a single solution**, in four difficulties: easy (36 empty cells), medium (46), hard (52) and expert (54-58).
+- **Pencil mode** to write notes in the cells. Placing a number clears it from the notes of its row, column and box.
+- **Mistakes in red**, undo, erase, and a counter of how many of each number are still missing.
+- **Hints** (each adds 30 seconds to your time) and a **solution** button (ends the game, which won't be ranked).
+- **Accounts and leaderboards**: best time of each player for every difficulty, and the battle elo ranking.
+- **Online battles**: players are matched with someone with their exact elo (the accepted gap widens by 25 points every 5 seconds of waiting), both get the same puzzle at the same time, and the first to solve it wins the elo points. You see your opponent's progress, not their numbers. A dropped connection or a page reload has 20 seconds to come back before the battle is lost.
+- **A new color palette every visit**, generated like in the [minesweeper game](https://github.com/DonatelloDonini/minesweeper-javascript): five harmonious colors mapped to the page theme, reversed when the browser is in dark mode.
+- **In-game rules**: the `?` button in the top right corner explains how to play.
 
 ## Project structure
 
 ```
-backend/           Node.js (Express) server
-  src/server.js      entry point
-  src/app.js         API routes + static file serving
-  src/levelGenerator.js
-  src/sudoku/        level generation logic (SudokuGrid, Possibilities, ...)
-  test/              tests (node:test)
-frontend/          static page served by the backend
+backend/                 Node.js server (Express + ws + SQLite)
+  src/server.js            entry point: HTTP server, battle websocket, database
+  src/app.js               API routes and static file serving
+  src/database.js          SQLite schema
+  src/users.js, auth.js    accounts, password hashing, sessions
+  src/games.js             single player games (hints, solution, timing)
+  src/leaderboard.js       rankings
+  src/battle/              matchmaking, battles, elo, websocket
+  src/levelGenerator.js    difficulties
+  src/sudoku/              level generation logic (SudokuGrid, Possibilities, SudokuSolver, ...)
+  test/                    tests (node:test)
+frontend/                static page served by the backend (ES modules, no build step)
+  js/main.js               the page: solo, battle, account, leaderboard
+  js/SudokuGame.js         game state: numbers, notes, undo, conflicts
+  js/SudokuBoard.js        the grid on screen
+  js/Palette.js            random color palette (from the minesweeper game)
 Dockerfile
 docker-compose.yml
 ```
 
-The backend generates the levels and also serves the frontend, so the whole game runs from a single process / container.
+The solution of a game never leaves the server until the player asks for it, and times are measured by the server, so the leaderboard can't be cheated from the browser.
 
 ## Running with Docker
 
@@ -25,16 +45,13 @@ docker compose up --build
 
 Then open http://localhost:3000. Set `PORT` to use a different host port, e.g. `PORT=8080 docker compose up --build`.
 
-Without compose:
+The database is stored in the `sudoku-data` volume, so accounts and rankings survive restarts and rebuilds (`docker compose down -v` deletes them).
 
-```sh
-docker build -t sudoku-game-web .
-docker run --rm -p 3000:3000 sudoku-game-web
-```
+When the game is served over HTTPS (e.g. behind a reverse proxy), set `COOKIE_SECURE=true` so the session cookie is only sent over HTTPS. The proxy must forward websocket upgrades on `/ws`.
 
 ## Running locally
 
-Requires Node.js 20 or newer.
+Requires Node.js 22.13 or newer (the database uses the built-in `node:sqlite` module).
 
 ```sh
 cd backend
@@ -43,32 +60,39 @@ npm start        # or `npm run dev` to restart on file changes
 npm test
 ```
 
-The frontend must be opened through the backend (http://localhost:3000), not as a file or through a separate static server, because it fetches its levels from the API.
+The frontend must be opened through the backend (http://localhost:3000), not as a file or through a separate static server, because it talks to the API.
 
 ## API
 
-### `GET /api/level?difficulty=<0-9>`
+All bodies are JSON. The session is kept in an httpOnly cookie. Boards are 9x9 arrays indexed as `board[y][x]`, with `null` for empty cells.
 
-Generates a new level. `difficulty` is how many numbers are removed from each row, column and quadrant (default `6`).
+| Method | Path | Description |
+|--------|------|-------------|
+| `POST` | `/api/auth/register` | `{username, password}`: creates an account and logs in |
+| `POST` | `/api/auth/login` | `{username, password}` |
+| `POST` | `/api/auth/logout` | |
+| `GET`  | `/api/auth/me` | The logged in user with their stats, or `null` |
+| `POST` | `/api/games` | `{difficulty}`: starts a game, returns `{id, puzzle, ranked, ...}` (ranked when logged in) |
+| `POST` | `/api/games/:id/hint` | `{board}`: returns `{x, y, value}`, fixing a mistake first if there is one |
+| `POST` | `/api/games/:id/solution` | Ends the game and returns the solution |
+| `POST` | `/api/games/:id/complete` | `{board}`: `{solved: false}`, or `{solved: true, durationMs, rank, ...}` |
+| `GET`  | `/api/leaderboard/elo` | Battle ranking |
+| `GET`  | `/api/leaderboard/times/:difficulty` | Best time of each player |
+| `GET`  | `/api/health` | `{"status": "ok"}`, used by the Docker health check |
 
-```json
-{
-  "difficulty": 6,
-  "puzzle":   [[null, 4, null, ...], ...],
-  "solution": [[8, 4, 1, ...], ...]
-}
-```
+### Battle websocket (`/ws`, logged in users only)
 
-Both grids are indexed as `grid[y][x]`; empty cells in `puzzle` are `null`. An invalid `difficulty` returns `400`.
+Client messages: `{type: "join-queue"}`, `{type: "leave-queue"}`, `{type: "move", x, y, value}`, `{type: "resign"}`.
 
-### `GET /api/health`
-
-Returns `{"status": "ok"}`; used by the Docker health check.
+Server messages: `welcome`, `queue-joined`, `queue-left`, `battle-start` (puzzle, opponent, countdown), `opponent-progress`, `opponent-connection`, `board-incorrect`, `battle-end` (result, elo change, solution), `replaced` (the account connected from another window), `error`.
 
 ## Configuration
 
-| Variable       | Default       | Description                          |
-|----------------|---------------|--------------------------------------|
-| `PORT`         | `3000`        | Port the server listens on           |
-| `HOST`         | `0.0.0.0`     | Interface the server binds to        |
-| `FRONTEND_DIR` | `../frontend` | Folder with the static frontend files |
+| Variable        | Default                  | Description                                   |
+|-----------------|--------------------------|-----------------------------------------------|
+| `PORT`          | `3000`                   | Port the server listens on                    |
+| `HOST`          | `0.0.0.0`                | Interface the server binds to                 |
+| `DATABASE_PATH` | `backend/data/sudoku.db` | SQLite database file (`/app/data/sudoku.db` in Docker) |
+| `COOKIE_SECURE` | `false`                  | Mark the session cookie as HTTPS only         |
+| `FRONTEND_DIR`  | `frontend/`              | Folder with the static frontend files         |
+| `DEBUG_SUDOKU_GENERATOR` | `false`         | Log the generator's row restarts              |

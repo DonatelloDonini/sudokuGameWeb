@@ -21,7 +21,6 @@ class NumberPossibilities extends Possibilities{
    */
   constructor(sudokuGrid, rowIndex){
     super(sudokuGrid, rowIndex);
-    this._initialize();
   }
 
   _initialize(){

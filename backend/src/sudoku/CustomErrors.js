@@ -2,7 +2,7 @@ class InvalidDimensionError extends Error{
   constructor (dimension){
     let message= "The dimension passed is not valid";
     if (dimension< 0){
-      message= "The dimension passed must be greather than 0.";
+      message= "The dimension passed must be greater than 0.";
     }
     else if (! Number.isInteger(dimension)){
       message= "The dimension must be an integer number.";
@@ -17,7 +17,7 @@ class InvalidDimensionError extends Error{
 class CoordOutOfBoundsError extends Error{
   constructor(coord, width, height, message= `The coord you passed is not valid.\nCoord entered: [${coord[0]}, ${coord[1]}]\nMax x: ${width-1}\nMax y: ${height-1}`){
     super(message);
-    this.name= "coordOutOfBoundsError";
+    this.name= "CoordOutOfBoundsError";
   }
 }
 
@@ -36,7 +36,7 @@ class OutOfOptionsGroupsError extends Error{
 }
 
 class NotImplementedError extends Error{
-  constructor(message="This function has not been implemented jet"){
+  constructor(message="This function has not been implemented yet"){
     super(message);
     this.name= "NotImplementedError";
   }
@@ -67,7 +67,7 @@ class NumberNotInRangeError extends Error{
   }
 }
 
-class NumberNotIngerError extends Error{
+class NumberNotIntegerError extends Error{
   constructor(n= null, message="The number must be an integer"){
     const numberSpecified= n!== null;
     if (numberSpecified){
@@ -75,7 +75,7 @@ class NumberNotIngerError extends Error{
     }
 
     super(message);
-    this.name= "NumberNotIngerError";
+    this.name= "NumberNotIntegerError";
   }
 }
 
@@ -95,7 +95,7 @@ class NumberNotPossibleError extends Error{
 }
 
 class InvalidMatrixShapeError extends Error{
-  constructor(message="The matrix isn't either a square or a matrix"){
+  constructor(message="The rows of the matrix don't all have the same length"){
     super(message);
     this.name= "InvalidMatrixShapeError";
   }
@@ -108,7 +108,7 @@ module.exports= {
   OutOfOptionsGroupsError,
   NotImplementedError,
   NumberNotInRangeError,
-  NumberNotIngerError,
+  NumberNotIntegerError,
   NumberNotPossibleError,
   InvalidMatrixShapeError,
 };

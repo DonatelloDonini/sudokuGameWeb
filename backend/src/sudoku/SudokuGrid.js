@@ -1,12 +1,24 @@
 const Grid= require("./Grid");
 const NumberPossibilities= require("./NumberPossibilities");
 const CellPossibilities= require("./CellPossibilities");
+const {hasUniqueSolution}= require("./SudokuSolver");
 const {
   EmptyArgumentError,
   NumberNotInRangeError,
-  NumberNotIngerError,
+  NumberNotIntegerError,
   NumberNotPossibleError,
+  OutOfOptionsGroupsError,
 }= require("./CustomErrors");
+
+/**
+ * How many times a row can be restarted before the whole grid is generated again from scratch.
+ */
+const MAX_ROW_RESTARTS= 1000;
+
+/**
+ * Restarting rows is part of the normal generation: only log it when debugging the generator.
+ */
+const debugLog= process.env.DEBUG_SUDOKU_GENERATOR=== "true" ? console.debug : ()=> {};
 
 /**
  * Class for managing and solving Sudoku puzzles.
@@ -250,7 +262,7 @@ class SudokuGrid extends Grid{
    */
   set(number, coord){
     if (! (number>0 && number<10)) throw new NumberNotInRangeError(number, 0, 10);
-    if (! Number.isInteger(number)) throw new NumberNotIngerError(number);
+    if (! Number.isInteger(number)) throw new NumberNotIntegerError(number);
     
     const possibleNumbers= this.getPossibleNumbers(coord);
     if (! possibleNumbers.has(number)) throw new NumberNotPossibleError(number, possibleNumbers);
@@ -299,6 +311,8 @@ class SudokuGrid extends Grid{
     const cellsFromNumbersWithLeastOptions= this._setSum(...Object.values(numbersPossibilitiesWithLeastOptions));
     const cellsToChooseFrom= this._setIntersection(cellsWithLeastOptions, cellsFromNumbersWithLeastOptions, numbersPossibilitiesWithLeastOptions[chosenNumber]);
 
+    if (cellsToChooseFrom.size=== 0) throw new OutOfOptionsGroupsError();
+
     const chosenCellX= this._chooseRandomElement(Array.from(cellsToChooseFrom));
     return {chosenCellX, chosenNumber};
   }
@@ -308,7 +322,16 @@ class SudokuGrid extends Grid{
    */
   generateLevel(){
     let y=0;
+    let rowRestarts= 0;
     while (y<this.height) {
+      // safety net: if the grid got stuck in a dead end, start over instead of looping forever
+      if (rowRestarts> MAX_ROW_RESTARTS){
+        console.warn("too many row restarts, generating the grid again from scratch");
+        for (let rowIndex= 0; rowIndex<this.height; rowIndex++) this.clearRow(rowIndex);
+        y= 0;
+        rowRestarts= 0;
+      }
+
       let numberPossibilities= new NumberPossibilities(this, y);
       let cellPossibilities= new CellPossibilities(this, y);
 
@@ -326,9 +349,12 @@ class SudokuGrid extends Grid{
             numberPossibilities.update(chosenNumber, chosenCellX);
             cellPossibilities.update(chosenCellX, chosenNumber);
 
-          } catch (OutOfOptionsGroupsError) {
-            console.warn("going up one row for shortage of number options");
+          } catch (error) {
+            if (! (error instanceof OutOfOptionsGroupsError)) throw error;
+
+            debugLog("restarting the row for shortage of number options");
             x= 0;
+            rowRestarts++;
             
             this.clearRow(y);
             
@@ -339,10 +365,15 @@ class SudokuGrid extends Grid{
         y++;
       }
       else{
-        console.warn(`For row ${y} there aren't enough possibilities.`);
+        debugLog(`For row ${y} there aren't enough possibilities.`);
         this.clearRow(y);
-        y--;
-        this.clearRow(y);
+        rowRestarts++;
+
+        // going up one row (the first row always has enough possibilities, but never go above it)
+        if (y> 0){
+          y--;
+          this.clearRow(y);
+        }
       }
     }
   }
@@ -385,7 +416,8 @@ class SudokuGrid extends Grid{
     for (let y= 0; y<gridCopy.height; y++){
       for (let x= 0; x<gridCopy.width; x++){
         const currCord= [x, y];
-        gridCopy.set(this.get(currCord), currCord);
+        // empty cells are already null in the copy, and SudokuGrid.set only accepts digits
+        if (this.get(currCord)!== null) gridCopy.set(this.get(currCord), currCord);
       }
     }
 
@@ -393,102 +425,64 @@ class SudokuGrid extends Grid{
   }
 
   /**
-   * Get the string representation of how many numbers can still be removed from each area of the grid (row, column and quadrant).
-   * 
+   * Shuffles a copy of an array (Fisher-Yates).
+   *
    * @private
-   * @param {list[number]} rowCounts A list containing how many numbers can be removed from each row.
-   * @param {list[number]} columnCounts A list containing how many numbers can be removed from each column.
-   * @param {list[number]} quadrantCounts A list containing how many numbers can be removed from each quadrant.
-   * @returns {string} A string representation of how many numbers can be inserted in the grid.
+   * @param {Array} array The array to shuffle.
+   * @returns {Array} A new array with the same elements in random order.
    */
-  _displayUnsolvedLevelCounts(rowCounts, columnCounts, quadrantCounts) {
-    let refill= "  ";
-    // displaying the column counts
-    for (let x= 0; x<this.width; x++){
-      refill+= (x%3=== 0) ? `   ${columnCounts[x]}` : ` ${columnCounts[x]}`;
+  _shuffle(array){
+    const shuffled= [...array];
+    for (let i= shuffled.length-1; i>0; i--){
+      const j= Math.floor(Math.random()*(i+1));
+      [shuffled[i], shuffled[j]]= [shuffled[j], shuffled[i]];
     }
 
-    refill+= "  \n";
-    refill+= "    ------- ------- ------- \n";
-    
-    // display row and quadrant counts
-    for (let y= 0; y<this.width; y++){
-      refill+= ((y-1)%3=== 0) ? ` ${rowCounts[y]} |   ${quadrantCounts[y-1]}   |   ${quadrantCounts[y]}   |   ${quadrantCounts[y+1]}   |\n` : ` ${rowCounts[y]} |       |       |       |\n`;
-      
-      if ((y+1)%3=== 0) refill+= "    ------- ------- ------- \n";
-    }
-    return refill;
+    return shuffled;
   }
 
   /**
-   * Get the list of the numbers you can delete from a row
-   * 
-   * @private
-   * @param {number} rowIndex The index of the row you want to know the list of removable indexes
-   * @param {list[number]} rowCounts A list containing how many numbers can be removed from each row
-   * @param {list[number]} columnCounts A list containing how many numbers can be removed from each column
-   * @param {list[number]} quadrantCounts A list containing how many numbers can be removed from each quadrant
-   * @param {list[number]} alreadyRemovedIndexes A list containing all the x-coordinates of the cells that have already been emptied
+   * Turns the solved grid into a ready-to-play level by emptying cells in random order.\
+   * A cell is only emptied if the level keeps a single solution, so the target might not be reached:
+   * the cells that can't be emptied anymore are kept.
+   *
+   * @param {number} numberOfCellsToEmpty How many cells you want to empty (0-81).
+   * @returns {number} How many cells were actually emptied.
+   * @throws {NumberNotInRangeError} If the number of cells is not between 0 and 81.
    */
-  _getPossibleIndexesToDelete(rowIndex, rowCounts, columnCounts, quadrantCounts, alreadyRemovedIndexes){
-    const possibleIndexesToDelete= [];
-    for (let x= 0; x<this.width; x++){
-      const hasCoordAlreadyBeenRemoved= alreadyRemovedIndexes.has(x);
-      const isRowFull= rowCounts[rowIndex]<= 0;
-      const isColumnFull= columnCounts[x]<= 0;
-      const isQuadrantFull= quadrantCounts[Math.floor(rowIndex/3)*3+Math.floor(x/3)]<= 0;
-
-      if (
-        ! (hasCoordAlreadyBeenRemoved) &&
-        ! (isRowFull) &&
-        ! (isColumnFull) &&
-        ! (isQuadrantFull)
-      ) possibleIndexesToDelete.push(x)
-    }
-
-    return possibleIndexesToDelete;
-  }
-
-  /**
-   * Returns a ready-to-play level of sudoku.
-   * @param {number} numberOfNumbersToDelete How many numbers you want to delete per row, column and quadrant.
-   */
-  unsolve(numberOfNumbersToDelete){
+  unsolve(numberOfCellsToEmpty){
+    const totalCells= this.width*this.height;
     if (
-      (numberOfNumbersToDelete< 0) || // number is negative
-      (numberOfNumbersToDelete> this.width)    // no numbers are displayed on the grid
-    ) throw new NumberNotInRangeError(numberOfNumbersToDelete, 0, 9);
+      (! Number.isInteger(numberOfCellsToEmpty)) ||
+      (numberOfCellsToEmpty< 0) ||
+      (numberOfCellsToEmpty> totalCells)
+    ) throw new NumberNotInRangeError(numberOfCellsToEmpty, 0, totalCells);
 
-    const rowCounts= [];
-    const columnCounts= [];
-    const quadrantCounts= [];
-
-    for (let i= 0; i<this.width; i++){
-      rowCounts.push(numberOfNumbersToDelete);
-      columnCounts.push(numberOfNumbersToDelete);
-      quadrantCounts.push(numberOfNumbersToDelete);
-    }
-    
+    const coords= [];
     for (let y= 0; y<this.height; y++){
-      const alreadyRemovedIndexes= new Set();
-      
-      for (let x= 0; x<numberOfNumbersToDelete; x++){
-        
-        // looking for possible indexes to remove
-        const possibleIndexesToDelete= this._getPossibleIndexesToDelete(y, rowCounts, columnCounts, quadrantCounts, alreadyRemovedIndexes);
-        if (possibleIndexesToDelete.length=== 0) break
-        // removing a random index from the available ones
-        const randomIndex= this._chooseRandomElement(possibleIndexesToDelete);
-        alreadyRemovedIndexes.add(randomIndex);
-
-        // updating the counts
-        rowCounts[y]--;
-        columnCounts[randomIndex]--;
-        quadrantCounts[Math.floor(y/3)*3+Math.floor(randomIndex/3)]--;
-
-        this.deleteElement([randomIndex, y]);
+      for (let x= 0; x<this.width; x++){
+        coords.push([x, y]);
       }
     }
+
+    let emptiedCells= 0;
+    const matrix= this.toArray();
+    for (const [x, y] of this._shuffle(coords)){
+      if (emptiedCells>= numberOfCellsToEmpty) break;
+
+      const removedNumber= matrix[y][x];
+      matrix[y][x]= null;
+
+      if (hasUniqueSolution(matrix)){
+        this.deleteElement([x, y]);
+        emptiedCells++;
+      }
+      else{
+        matrix[y][x]= removedNumber;
+      }
+    }
+
+    return emptiedCells;
   }
 }
 

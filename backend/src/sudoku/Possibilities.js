@@ -16,15 +16,17 @@ class Possibilities{
     this.sudokuGrid= sudokuGrid;
     this.rowIndex= rowIndex;
     this._initialize();
-  }
 
-  /**
-   * Initializes the possibilities.
-   */
-  _initialize() {
     if (typeof this._possibilities === 'undefined') {
       throw new NotImplementedError("Subclasses should define '_possibilities' in the '_initialize' method.");
     }
+  }
+
+  /**
+   * Initializes the possibilities, must be implemented by the subclasses.
+   */
+  _initialize() {
+    throw new NotImplementedError();
   }
   
   /**
@@ -50,7 +52,7 @@ class Possibilities{
    * @returns {boolean}
    */
   _isSameCoord(coord1, coord2){
-    return (coord1[0]=== coord2[0]) && (coord1[1]=== coord2[2]);
+    return (coord1[0]=== coord2[0]) && (coord1[1]=== coord2[1]);
   }
 
   /**
@@ -63,7 +65,7 @@ class Possibilities{
     const keys= Object.keys(this._possibilities);
     if (groupIndex>= keys.length) throw new OutOfOptionsGroupsError();
 
-    const sortedKeys= keys.sort();
+    const sortedKeys= keys.sort((a, b)=> Number(a) - Number(b));
     return this._possibilities[sortedKeys[groupIndex]];
   }
 

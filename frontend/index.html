@@ -3,17 +3,31 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="The classic sudoku game: solo games with a leaderboard and online battles." />
     <title>Sudoku</title>
     <link rel="stylesheet" href="style.css"/>
+    <script src="js/main.js" type="module"></script>
   </head>
   <body>
-    <header><h1>Just the classic sudoku game</h1></header>
+    <header class="page-header">
+      <h1>Sudoku</h1>
+      <div class="header-actions" id="header-actions"></div>
+    </header>
 
-    <div id="gamePlay"></div>
+    <main class="page">
+      <nav class="mode-tabs" id="mode-tabs" role="tablist" aria-label="Game mode"></nav>
+
+      <section class="game-layout" aria-label="Game">
+        <div class="status-bar" id="status-bar"></div>
+        <div class="board-area" id="board-area"></div>
+        <div class="side">
+          <div class="controls" id="controls"></div>
+          <div class="number-pad" id="number-pad"></div>
+          <p class="message" id="message" aria-live="polite"></p>
+        </div>
+      </section>
+    </main>
+
+    <noscript>This game needs JavaScript.</noscript>
   </body>
-  <script src="js/CustomErrors.js"></script>
-  <script src="js/Grid.js"></script>
-  <script src="js/GUI_Grid.js"></script>
-  <script src="js/Tempaltes.js"></script>
-  <script src="js/gamePlay.js"></script>
 </html>
