@@ -1,4 +1,4 @@
-console.log("NumberPossibilities.js");
+const Possibilities= require("./Possibilities");
 
 /**
  * Class to associate at each number a set of cell X coords in which the number can be inserted.\
@@ -27,7 +27,7 @@ class NumberPossibilities extends Possibilities{
   _initialize(){
     const numberPossibilities= {};
 
-    for (const possibleDigit of sudokuGrid.allPossibleDigits) {
+    for (const possibleDigit of this.sudokuGrid.allPossibleDigits) {
       numberPossibilities[possibleDigit]= new Set();
     }
 
@@ -48,8 +48,8 @@ class NumberPossibilities extends Possibilities{
   }
 
   areEnough(){
-    const digits= new Set(sudokuGrid.allPossibleDigits);
-    sudokuGrid.getRowNumbers([0, this.rowIndex]).forEach(alreadyPresentDigit => digits.delete(alreadyPresentDigit));
+    const digits= new Set(this.sudokuGrid.allPossibleDigits);
+    this.sudokuGrid.getRowNumbers([0, this.rowIndex]).forEach(alreadyPresentDigit => digits.delete(alreadyPresentDigit));
     
     for (const numberOfOptions of Object.keys(this._possibilities)){
       if (numberOfOptions> 0){
@@ -81,3 +81,5 @@ class NumberPossibilities extends Possibilities{
     return refill;
   }
 }
+
+module.exports= NumberPossibilities;

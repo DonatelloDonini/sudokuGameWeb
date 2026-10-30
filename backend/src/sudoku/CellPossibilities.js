@@ -1,4 +1,4 @@
-console.log("CellPossibilities.js");
+const Possibilities= require("./Possibilities");
 
 /**
  * Class to associate at each cell the set of numbers that can be put in it.  
@@ -44,7 +44,7 @@ class CellPossibilities extends Possibilities{
   areEnough(){
     const digits= new Set();
     for (let i= 0; i<this.sudokuGrid.width; i++){
-      if (! sudokuGrid.get([i, this.rowIndex])) {
+      if (! this.sudokuGrid.get([i, this.rowIndex])) {
         digits.add(i);
       }
     }
@@ -79,3 +79,5 @@ class CellPossibilities extends Possibilities{
     return refill;
   }
 }
+
+module.exports= CellPossibilities;

@@ -73,3 +73,8 @@ header{
     transform: rotate(0deg 90deg) translate(100px) rotate(0deg 90deg);
   }
 }
+
+.errorMessage{
+  color: var(--text);
+  font-family: sans-serif;
+}

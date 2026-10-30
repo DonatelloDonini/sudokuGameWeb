@@ -1,4 +1,12 @@
-console.log("SudokuGrid.js");
+const Grid= require("./Grid");
+const NumberPossibilities= require("./NumberPossibilities");
+const CellPossibilities= require("./CellPossibilities");
+const {
+  EmptyArgumentError,
+  NumberNotInRangeError,
+  NumberNotIngerError,
+  NumberNotPossibleError,
+}= require("./CustomErrors");
 
 /**
  * Class for managing and solving Sudoku puzzles.
@@ -347,8 +355,8 @@ class SudokuGrid extends Grid{
    */
   isValid(){
     for (let i= 0; i<9; i++){
-      const rowNumbersToAnalyze= this.getRowNumbers([i, 0]);
-      const columnNumbersToAnalyze= this.getColumnNumbers([0, i]);
+      const rowNumbersToAnalyze= this.getRowNumbers([0, i]);
+      const columnNumbersToAnalyze= this.getColumnNumbers([i, 0]);
       const quadrantNumbersToAnalyze= this.getQuadrantNumbers([(i*3)%9, Math.floor(i/3)*3]);
 
       const rowHasAllNumbers= this._setDifference(this.allPossibleDigits, rowNumbersToAnalyze).size=== 0;
@@ -483,3 +491,5 @@ class SudokuGrid extends Grid{
     }
   }
 }
+
+module.exports= SudokuGrid;

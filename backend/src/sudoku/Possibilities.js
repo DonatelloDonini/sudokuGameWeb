@@ -1,4 +1,4 @@
-console.log("Possibilities.js");
+const {NotImplementedError, OutOfOptionsGroupsError}= require("./CustomErrors");
 
 /**
  * @abstract 
@@ -119,3 +119,5 @@ class Possibilities{
     }
   }
 }
+
+module.exports= Possibilities;
