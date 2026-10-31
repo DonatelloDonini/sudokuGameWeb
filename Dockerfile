@@ -11,9 +11,12 @@ COPY backend/package.json backend/package-lock.json ./backend/
 # A read-only GitHub token, passed as a build secret: it is only used by this step and never stored in the image.
 #   docker build --secret id=github_token,env=GITHUB_TOKEN .
 RUN --mount=type=secret,id=github_token \
-    if [ -s /run/secrets/github_token ]; then \
-      git config --global url."https://x-access-token:$(cat /run/secrets/github_token)@github.com/".insteadOf "ssh://git@github.com/"; \
+    if [ ! -s /run/secrets/github_token ]; then \
+      echo "Missing the github_token build secret: pixel-avatar is a private repository." \
+           "Build with GITHUB_TOKEN=<read-only token> docker compose up --build (see the README)." >&2; \
+      exit 1; \
     fi \
+    && git config --global url."https://x-access-token:$(cat /run/secrets/github_token)@github.com/".insteadOf "ssh://git@github.com/" \
     && npm ci --omit=dev --prefix backend \
     && npm cache clean --force \
     && rm -f ~/.gitconfig
