@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="The classic sudoku game: solo games with a leaderboard and online battles." />
+    <title>Sudoku</title>
+    <link rel="stylesheet" href="/style.css"/>
+    <link rel="manifest" href="/manifest.webmanifest"/>
+    <link rel="icon" href="/icon.svg" type="image/svg+xml"/>
+    <meta name="theme-color" content="#1282A2"/>
+    <!-- the pixel-avatar module (an npm dependency of the server, which serves its browser files) -->
+    <script type="importmap">{"imports": {"pixel-avatar": "/vendor/pixel-avatar/index.js", "pixel-avatar/editor": "/vendor/pixel-avatar/editor.js"}}</script>
+    <script src="/js/main.js" type="module"></script>
+  </head>
+  <body>
+    <header class="page-header">
+      <h1><a class="home-link" href="/" title="Home">Sudoku</a></h1>
+      <div class="header-actions" id="header-actions"></div>
+    </header>
+
+    <main class="page">
+      <nav class="mode-tabs" id="mode-tabs" role="tablist" aria-label="Game mode"></nav>
+
+      <section class="game-layout" aria-label="Game">
+        <div class="status-bar" id="status-bar"></div>
+        <div class="board-area" id="board-area"></div>
+        <div class="side">
+          <div class="controls" id="controls"></div>
+          <div class="number-pad" id="number-pad"></div>
+          <p class="message" id="message" aria-live="polite"></p>
+        </div>
+      </section>
+    </main>
+
+    <noscript>This game needs JavaScript.</noscript>
+  </body>
+</html>

@@ -1,0 +1,19 @@
+{
+  "name": "sudoku-game-web-dev-tools",
+  "private": true,
+  "description": "Development-only tools: the tests of the whole project. The server has its own package in backend/.",
+  "type": "module",
+  "scripts": {
+    "test": "npm run test:backend && npm run test:frontend && npm run test:e2e",
+    "test:backend": "npm --prefix backend test",
+    "test:frontend": "node --test tests/frontend/*.test.js",
+    "test:e2e": "playwright test",
+    "test:e2e:report": "playwright show-report"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.63.0"
+  },
+  "engines": {
+    "node": ">=22.13"
+  }
+}

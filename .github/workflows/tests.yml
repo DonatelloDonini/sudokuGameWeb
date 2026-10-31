@@ -1,0 +1,100 @@
+name: Tests
+
+on:
+  push:
+  pull_request:
+
+# The avatars come from the private pixel-avatar repository: PIXEL_AVATAR_TOKEN is a read-only token for it
+# (a fine-grained token with "Contents: read-only" on DonatelloDonini/pixel-avatar), stored as an Actions secret.
+
+jobs:
+  tests:
+    name: Backend, frontend and browser tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          # otherwise the workflow's own token is sent to github.com for every git command run in the checkout,
+          # npm's included, and it can't read pixel-avatar
+          persist-credentials: false
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            backend/package-lock.json
+
+      - name: Check the access to pixel-avatar
+        env:
+          PIXEL_AVATAR_TOKEN: ${{ secrets.PIXEL_AVATAR_TOKEN }}
+        run: .github/scripts/check-pixel-avatar-access.sh
+
+      - name: Give npm access to pixel-avatar
+        env:
+          PIXEL_AVATAR_TOKEN: ${{ secrets.PIXEL_AVATAR_TOKEN }}
+        run: git config --global url."https://x-access-token:${PIXEL_AVATAR_TOKEN}@github.com/".insteadOf "ssh://git@github.com/"
+
+      - name: Install the dependencies
+        run: |
+          npm ci --prefix backend
+          npm ci
+
+      - name: Backend tests
+        run: npm run test:backend
+
+      - name: Frontend unit tests
+        run: npm run test:frontend
+
+      - name: Install the browser
+        run: npx playwright install --with-deps chromium
+
+      - name: Browser tests
+        run: npm run test:e2e
+
+      # screenshots, traces and the HTML report of the failed browser tests
+      - name: Upload the browser test report
+        if: failure()
+        uses: actions/upload-artifact@v6
+        with:
+          name: playwright-report
+          path: |
+            playwright-report/
+            test-results/
+          retention-days: 14
+          if-no-files-found: ignore
+
+  docker:
+    name: Docker image
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+
+      - name: Check the access to pixel-avatar
+        env:
+          PIXEL_AVATAR_TOKEN: ${{ secrets.PIXEL_AVATAR_TOKEN }}
+        run: .github/scripts/check-pixel-avatar-access.sh
+
+      - name: Build the image
+        env:
+          GITHUB_TOKEN: ${{ secrets.PIXEL_AVATAR_TOKEN }}
+        run: docker build --secret id=github_token,env=GITHUB_TOKEN -t sudoku-game-web .
+
+      - name: Start it and wait for the health check
+        run: |
+          docker run -d --name sudoku -p 3000:3000 sudoku-game-web
+          for attempt in $(seq 1 30); do
+            if [ "$(docker inspect -f '{{.State.Health.Status}}' sudoku)" = "healthy" ]; then
+              curl -fsS http://localhost:3000/api/health
+              curl -fsS "http://localhost:3000/api/v1/puzzles?difficulty=easy" > /dev/null
+              exit 0
+            fi
+            sleep 2
+          done
+          docker logs sudoku
+          exit 1

@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="robots" content="noindex" />
+    <title>Sudoku Admin</title>
+    <link rel="stylesheet" href="admin.css"/>
+    <!-- the pixel-avatar module (an npm dependency of the server, which serves its browser files) -->
+    <script type="importmap">{"imports": {"pixel-avatar": "/vendor/pixel-avatar/index.js", "pixel-avatar/editor": "/vendor/pixel-avatar/editor.js"}}</script>
+    <script src="js/admin/dashboard.js" type="module"></script>
+  </head>
+  <body>
+    <div id="wrapper">
+      <aside id="dashboardSidebar" hidden>
+        <button type="button" id="mobileAccordionMenu" class="mobileOnly" aria-controls="dashboardOptions" aria-expanded="false"></button>
+
+        <!-- Collapses the sidebar to the pages' icons (desktop only, see dashboard.js) -->
+        <button type="button" id="sidebarToggle" class="desktopOnly" aria-controls="dashboardSidebar" aria-expanded="true"></button>
+
+        <!-- The pages are listed in js/admin/pages.js; they scroll when they don't fit -->
+        <nav id="dashboardOptions" aria-label="Dashboard pages"></nav>
+
+        <div id="profileMenu"></div>
+      </aside>
+
+      <main id="dashboardMain" aria-live="polite">
+        <p class="muted">Loading…</p>
+      </main>
+    </div>
+  </body>
+</html>

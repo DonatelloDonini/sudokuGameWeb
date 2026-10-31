@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="Developers area of Sudoku: a free API with graded puzzles, a solver, a difficulty grader and step by step hints." />
+    <title>Sudoku for developers</title>
+    <link rel="stylesheet" href="/site/site.css"/>
+    <link rel="icon" href="/icon.svg" type="image/svg+xml"/>
+    <script src="/site/site.js" type="module"></script>
+    <script src="/developers/developers.js" type="module"></script>
+  </head>
+  <body>
+    <header class="site-header">
+      <a class="site-logo" href="/" aria-label="Sudoku, home">
+        <span class="site-logo-mark" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></span>
+        Sudoku
+      </a>
+      <button class="site-menu-button" type="button" aria-expanded="false" aria-controls="site-navigation">Menu</button>
+      <nav class="site-nav" id="site-navigation" aria-label="Site">
+        <a href="/#features">Features</a>
+        <a href="/developers/" aria-current="page">Developers</a>
+        <a class="button button-primary" href="/play/">Play</a>
+      </nav>
+    </header>
+
+    <div class="developers">
+      <nav class="developers-nav" aria-label="Developers area">
+        <h2>Start</h2>
+        <a href="#overview">Overview</a>
+        <a href="#quick-start">Quick start</a>
+        <a href="#basics">Basics</a>
+        <h2>Endpoints</h2>
+        <a href="#puzzles">Puzzles</a>
+        <a href="#solve">Solve</a>
+        <a href="#grade">Grade</a>
+        <a href="#hint">Hint</a>
+        <a href="#difficulties">Difficulties</a>
+        <h2>More</h2>
+        <a href="#limits">Limits and errors</a>
+        <a href="#try">Try it</a>
+      </nav>
+
+      <main class="docs">
+        <section id="overview">
+          <h1>Sudoku for developers</h1>
+          <p class="lead">
+            Making a sudoku game and don't want to write a generator? This free API gives you puzzles with a single solution,
+            graded by the techniques a person needs to solve them, plus a solver, a difficulty grader and step by step hints.
+            No account or key needed.
+          </p>
+        </section>
+
+        <section id="quick-start">
+          <h2>Quick start</h2>
+          <p>Fetch a puzzle from your game, in the browser or on your server:</p>
+          <pre data-base-url><code>const response= await fetch("https://your-server/api/v1/puzzles?difficulty=medium");
+const {puzzles: [level]}= await response.json();
+
+level.puzzle;            // 9x9 array, null for the empty cells
+level.solution;          // 9x9 array
+level.hardestTechnique;  // e.g. "Naked pair"</code></pre>
+          <p>When the player is stuck, send their board and show the next logical step:</p>
+          <pre data-base-url><code>const hint= await fetch("https://your-server/api/v1/hint", {
+  method: "POST",
+  headers: {"Content-Type": "application/json"},
+  body: JSON.stringify({puzzle: board}),
+}).then(response=&gt; response.json());
+
+// {x: 2, y: 2, value: 9, technique: "Hidden single", steps: [...]}</code></pre>
+        </section>
+
+        <section id="basics">
+          <h2>Basics</h2>
+          <ul>
+            <li>Base URL: <code data-base-url>https://your-server/api/v1</code></li>
+            <li>Requests and responses are JSON. Every endpoint can be called from any website (CORS is open) and uses no cookies.</li>
+            <li>
+              Puzzles can be sent and received in two formats, chosen with <code>?format=</code>:
+              <ul>
+                <li><code>array</code> (default): a 9x9 array indexed as <code>puzzle[y][x]</code>, with <code>null</code> for empty cells (<code>0</code> is accepted too);</li>
+                <li><code>string</code>: 81 characters, row by row, with <code>.</code> for empty cells (<code>0</code> is accepted too).</li>
+              </ul>
+            </li>
+            <li>Coordinates in responses are <code>x</code> (column, 0-8) and <code>y</code> (row, 0-8).</li>
+          </ul>
+        </section>
+
+        <section id="puzzles">
+          <h2><span class="method">GET</span> /puzzles</h2>
+          <p>New puzzles, generated on request, with their solution and grade.</p>
+          <div class="table-scroll"><table>
+            <thead><tr><th>Parameter</th><th>Default</th><th>Description</th></tr></thead>
+            <tbody>
+              <tr><td><code>difficulty</code></td><td><code>medium</code></td><td><code>easy</code>, <code>medium</code>, <code>hard</code> or <code>expert</code> (see <a href="#difficulties">difficulties</a>)</td></tr>
+              <tr><td><code>count</code></td><td><code>1</code></td><td>How many puzzles, 1 to 10</td></tr>
+              <tr><td><code>format</code></td><td><code>array</code></td><td><code>array</code> or <code>string</code></td></tr>
+            </tbody>
+          </table></div>
+          <pre data-base-url>curl "https://your-server/api/v1/puzzles?difficulty=hard&amp;format=string"</pre>
+          <pre>{
+    "puzzles": [
+      {
+        "difficulty": "hard",
+        "puzzle": "..9.4...1.3...7..5...",
+        "solution": "759842361831697245...",
+        "emptyCells": 55,
+        "hardestTechnique": "X-Wing",
+        "score": 112,
+        "techniques": { "Hidden single": 49, "Naked single": 3, "Pointing": 2, "X-Wing": 1 }
+      }
+    ]
+  }</pre>
+          <p><code>techniques</code> tells how many times each technique is used to solve the puzzle, easiest technique first. <code>score</code> adds them up with a weight per technique: higher is harder within the same difficulty.</p>
+        </section>
+
+        <section id="solve">
+          <h2><span class="method">POST</span> /solve</h2>
+          <p>Solves any puzzle, and tells whether its solution is unique.</p>
+          <pre data-base-url>curl -X POST "https://your-server/api/v1/solve" \
+    -H "Content-Type: application/json" \
+    -d '{"puzzle": "53..7....6..195....98....6.8...6...34..8.3..17...2...6.6....28....419..5....8..79"}'</pre>
+          <pre>{
+    "solvable": true,
+    "unique": true,
+    "solution": [[5, 3, 4, 6, 7, 8, 9, 1, 2], ...]
+  }</pre>
+          <p>When there are several solutions, <code>unique</code> is <code>false</code> and <code>solution</code> is one of them.</p>
+        </section>
+
+        <section id="grade">
+          <h2><span class="method">POST</span> /grade</h2>
+          <p>Grades any puzzle, yours included, the same way the generated ones are graded.</p>
+          <pre data-base-url>fetch("https://your-server/api/v1/grade", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ puzzle: myPuzzle }),
+  }).then(response =&gt; response.json());</pre>
+          <pre>{
+    "solvable": true,
+    "unique": true,
+    "solvableWithLogic": true,
+    "difficulty": "medium",
+    "hardestTechnique": "Naked pair",
+    "score": 74,
+    "techniques": { "Hidden single": 51, "Naked single": 2, "Naked pair": 1 },
+    "emptyCells": 51
+  }</pre>
+          <p><code>difficulty</code> is <code>null</code> when the puzzle doesn't have exactly one solution, or when it needs harder reasoning than the expert techniques (<code>solvableWithLogic</code> is then <code>false</code>).</p>
+        </section>
+
+        <section id="hint">
+          <h2><span class="method">POST</span> /hint</h2>
+          <p>
+            Send the player's current board, get the next number a person could place and the technique that finds it.
+            On hard puzzles a number can only be found after removing some candidates: <code>steps</code> lists those deductions,
+            so you can explain the hint or show it on the player's notes.
+          </p>
+          <pre>{
+    "x": 2,
+    "y": 2,
+    "value": 9,
+    "technique": "Hidden single",
+    "steps": [
+      { "technique": "Pointing", "eliminations": [{ "x": 8, "y": 7, "digits": [6] }] },
+      { "technique": "XY-Wing", "eliminations": [{ "x": 8, "y": 2, "digits": [9] }, { "x": 7, "y": 6, "digits": [9] }] }
+    ]
+  }</pre>
+          <p>
+            Boards with a wrong number answer <code>422</code>, full boards <code>409</code>.
+            If logic alone can't progress, the hint is a correct number with <code>"technique": null</code>.
+          </p>
+        </section>
+
+        <section id="difficulties">
+          <h2><span class="method">GET</span> /difficulties</h2>
+          <p>
+            The difficulty depends on the reasoning a puzzle needs, not on how many cells are empty.
+            Every puzzle of a difficulty needs at least one technique of its level and nothing harder:
+          </p>
+          <div class="table-scroll"><table>
+            <thead><tr><th>Difficulty</th><th>Techniques</th></tr></thead>
+            <tbody>
+              <tr><td>easy</td><td>hidden single, naked single (and at most 45 empty cells)</td></tr>
+              <tr><td>medium</td><td>pointing, box/line reduction, naked pair, hidden pair</td></tr>
+              <tr><td>hard</td><td>naked triple, hidden triple, X-Wing</td></tr>
+              <tr><td>expert</td><td>XY-Wing, XYZ-Wing, Swordfish</td></tr>
+            </tbody>
+          </table></div>
+        </section>
+
+        <section id="limits">
+          <h2>Limits and errors</h2>
+          <ul>
+            <li>Each IP can make 60 requests per minute; every generated puzzle counts as one request. The <code>RateLimit-Limit</code>, <code>RateLimit-Remaining</code> and <code>RateLimit-Reset</code> headers tell where you are.</li>
+            <li>Over the limit the API answers <code>429</code> with a <code>Retry-After</code> header (in seconds). When too many puzzles are being generated it answers <code>503</code>, also with <code>Retry-After</code>.</li>
+            <li>Errors are <code>{"error": "message"}</code>: <code>400</code> for invalid parameters or malformed puzzles, <code>422</code> for puzzles breaking the rules (a number repeated in a row, column or box).</li>
+            <li>Hard and expert puzzles take longer to generate (up to a few seconds for 10): if your game needs them often, keep a few in advance.</li>
+          </ul>
+        </section>
+
+        <section id="try">
+          <h2>Try it</h2>
+          <form id="try-form" class="try-form">
+            <select class="select" name="difficulty" aria-label="Difficulty">
+              <option value="easy">Easy</option>
+              <option value="medium" selected>Medium</option>
+              <option value="hard">Hard</option>
+              <option value="expert">Expert</option>
+            </select>
+            <select class="select" name="format" aria-label="Format">
+              <option value="array">array</option>
+              <option value="string">string</option>
+            </select>
+            <button class="button button-primary" type="submit">Get a puzzle</button>
+          </form>
+          <pre id="try-output" aria-live="polite">Pick a difficulty and press the button.</pre>
+        </section>
+      </main>
+    </div>
+
+    <footer class="site-footer">
+      <span>Sudoku</span>
+      <nav aria-label="Footer">
+        <a href="/play/">Play</a>
+        <a href="/developers/">Developers</a>
+      </nav>
+    </footer>
+  </body>
+</html>
