@@ -82,7 +82,7 @@ Hard puzzles are rare (about 1 attempt in 40 needs a triple or an X-Wing), so `L
 
 ## The pixel-avatar module
 
-The avatars come from [pixel-avatar](https://github.com/DonatelloDonini/pixel-avatar), a separate npm package in a private GitHub repository. The server depends on it (`backend/package.json`, pinned to a tag and, in the lock file, to its exact commit), uses it to check and draw the avatars, and serves its browser files at `/vendor/pixel-avatar/`. The pages import it as `"pixel-avatar"` through an import map, like in Node.js.
+The avatars come from [pixel-avatar](https://github.com/DonatelloDonini/pixel-avatar), a separate npm package in a private GitHub repository. The server depends on it (`backend/package.json`, pinned to the module's exact commit), uses it to check and draw the avatars, and serves its browser files at `/vendor/pixel-avatar/`. The pages import it as `"pixel-avatar"` through an import map, like in Node.js.
 
 Installing the dependencies therefore needs read access to that repository:
 
@@ -90,7 +90,7 @@ Installing the dependencies therefore needs read access to that repository:
 - **Docker**: a read-only GitHub token in `GITHUB_TOKEN`, passed to the build as a secret (it is never stored in the image).
 - **GitHub Actions**: a repository secret named `PIXEL_AVATAR_TOKEN` with the same token.
 
-A fine-grained personal access token with read-only access to the *contents* of `pixel-avatar` is enough. To update the module, tag a new version there and change the tag in `backend/package.json`, then run `npm install` in `backend/`.
+A fine-grained personal access token with read-only access to the *contents* of `pixel-avatar` is enough. To update the module, push the new version there, then put its commit in `backend/package.json` (or a tag, once there are some: `github:DonatelloDonini/pixel-avatar#v1.1.0`) and run `npm install` in `backend/`.
 
 ## Running with Docker
 
