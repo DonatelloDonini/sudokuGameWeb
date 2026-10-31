@@ -1,5 +1,5 @@
 const crypto= require("node:crypto");
-const {generateLevel}= require("./levelGenerator");
+const {generateLevel: defaultGenerateLevel}= require("./levelGenerator");
 const {boardsEqual}= require("./boards");
 
 /** Every hint adds this much to the final time. */
@@ -14,10 +14,12 @@ class Games{
    * @param {import("node:sqlite").DatabaseSync} db
    * @param {Object} options
    * @param {Function} options.now Returns the current time in ms (replaceable in tests).
+   * @param {Function} options.generateLevel Returns a new level for a difficulty (e.g. from the LevelPool).
    */
-  constructor(db, {now= Date.now}= {}){
+  constructor(db, {now= Date.now, generateLevel= defaultGenerateLevel}= {}){
     this.db= db;
     this.now= now;
+    this.generateLevel= generateLevel;
   }
 
   /**
@@ -26,13 +28,13 @@ class Games{
    * @returns {Object} The game as stored.
    */
   create(userId, difficulty){
-    const {puzzle, solution}= generateLevel(difficulty);
+    const {puzzle, solution, grade}= this.generateLevel(difficulty);
     const id= crypto.randomUUID();
 
     this.db.prepare(`
-      INSERT INTO games (id, user_id, difficulty, puzzle, solution, started_at)
-      VALUES (?, ?, ?, ?, ?, ?)
-    `).run(id, userId, difficulty, JSON.stringify(puzzle), JSON.stringify(solution), this.now());
+      INSERT INTO games (id, user_id, difficulty, puzzle, solution, hardest_technique, score, started_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    `).run(id, userId, difficulty, JSON.stringify(puzzle), JSON.stringify(solution), grade.hardestTechnique, grade.score, this.now());
 
     return this.find(id);
   }
@@ -91,7 +93,7 @@ class Games{
   /**
    * Checks the player's board and, if it is the solution, closes the game.
    * The time is measured on the server: from the creation of the game, plus the hint penalties.
-   * @returns {{solved: false}|{solved: true, durationMs: number, hintsUsed: number}}
+   * @returns {{solved: false}|{solved: true, durationMs: number, hintsUsed: number, hardestTechnique: string}}
    */
   complete(game, board){
     if (! boardsEqual(board, game.solution)) return {solved: false};
@@ -102,7 +104,7 @@ class Games{
       .prepare("UPDATE games SET status = 'completed', finished_at = ?, duration_ms = ? WHERE id = ?")
       .run(finishedAt, durationMs, game.id);
 
-    return {solved: true, durationMs, hintsUsed: game.hints_used};
+    return {solved: true, durationMs, hintsUsed: game.hints_used, hardestTechnique: game.hardest_technique};
   }
 
   /**

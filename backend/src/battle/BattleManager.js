@@ -173,13 +173,14 @@ class BattleManager{
     this.queue.delete(entryB.userId);
 
     const difficulty= difficultyForElo((entryA.elo + entryB.elo) / 2);
-    const {puzzle, solution}= this.generate(difficulty);
+    const {puzzle, solution, grade}= this.generate(difficulty);
 
     const battle= {
       id: crypto.randomUUID(),
       difficulty,
       puzzle,
       solution,
+      hardestTechnique: grade?.hardestTechnique ?? null,
       startsAt: this.now() + this.countdownMs,
       finished: false,
       players: [entryA, entryB].map(entry=> {
@@ -261,12 +262,12 @@ class BattleManager{
         INSERT INTO battles (
           id, difficulty, puzzle, solution,
           player1_id, player2_id, player1_elo_before, player2_elo_before,
-          winner_id, elo_change, end_reason, started_at, finished_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          winner_id, elo_change, end_reason, started_at, finished_at, hardest_technique
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `).run(
         battle.id, battle.difficulty, JSON.stringify(battle.puzzle), JSON.stringify(battle.solution),
         player1.userId, player2.userId, player1.eloBefore, player2.eloBefore,
-        winner.userId, change, reason, battle.startsAt, finishedAt,
+        winner.userId, change, reason, battle.startsAt, finishedAt, battle.hardestTechnique,
       );
     });
 
@@ -283,6 +284,7 @@ class BattleManager{
         elo: player.eloBefore + (won ? change : -change),
         durationMs: Math.max(0, finishedAt - battle.startsAt),
         solution: battle.solution,
+        hardestTechnique: battle.hardestTechnique,
       });
     }
   }

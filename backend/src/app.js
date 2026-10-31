@@ -15,14 +15,15 @@ const DEFAULT_FRONTEND_DIR= path.resolve(__dirname, "../../frontend");
  * @param {Object} options
  * @param {boolean} [options.secureCookies]
  * @param {Function} [options.now]
+ * @param {Function} [options.generateLevel] Where the single player levels come from (default: generated on demand).
  */
-const createServices= (db, {secureCookies= false, now= Date.now}= {})=> {
+const createServices= (db, {secureCookies= false, now= Date.now, generateLevel}= {})=> {
   const users= new Users(db);
   return {
     db,
     users,
     sessions: new Sessions(db, users, {secureCookies}),
-    games: new Games(db, {now}),
+    games: new Games(db, {now, generateLevel}),
   };
 };
 

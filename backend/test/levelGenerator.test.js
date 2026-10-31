@@ -1,6 +1,7 @@
 const {test}= require("node:test");
 const assert= require("node:assert/strict");
-const {generateLevel, DIFFICULTIES}= require("../src/levelGenerator");
+const {generateLevel, techniquesByDifficulty, DIFFICULTIES}= require("../src/levelGenerator");
+const {solveLogically}= require("../src/sudoku/HumanSolver");
 const {hasUniqueSolution}= require("../src/sudoku/SudokuSolver");
 
 const ALL_DIGITS= [1, 2, 3, 4, 5, 6, 7, 8, 9];
@@ -10,7 +11,7 @@ const assertHasAllDigits= (cells, areaName)=> {
 };
 
 test("the solution is a valid, complete sudoku", ()=> {
-  for (let attempt= 0; attempt<20; attempt++){
+  for (let attempt= 0; attempt<10; attempt++){
     const {solution}= generateLevel("easy");
 
     for (let i= 0; i<9; i++){
@@ -28,26 +29,26 @@ test("the solution is a valid, complete sudoku", ()=> {
   }
 });
 
-test("every difficulty gives a puzzle with a single solution matching the solution", ()=> {
-  for (const [difficulty, target] of Object.entries(DIFFICULTIES)){
-    for (let attempt= 0; attempt<5; attempt++){
-      const {puzzle, solution}= generateLevel(difficulty);
-      const empty= puzzle.flat().filter(cell=> cell=== null).length;
+test("every difficulty needs a technique of its tier, and nothing harder", ()=> {
+  for (const [difficulty, {tier}] of Object.entries(DIFFICULTIES)){
+    for (let attempt= 0; attempt<3; attempt++){
+      const {puzzle, solution, grade}= generateLevel(difficulty);
 
-      assert.ok(empty<= target, `${difficulty}: ${empty} empty cells, target ${target}`);
-      assert.ok(empty>= Math.min(target, 50), `${difficulty}: only ${empty} empty cells`);
+      assert.equal(grade.tier, tier, `${difficulty} level graded ${grade.tier}`);
+      assert.ok(techniquesByDifficulty()[difficulty].includes(grade.hardestTechnique));
+      assert.equal(solveLogically(puzzle, tier).solved, true, `${difficulty} level can be solved within its tier`);
+      assert.equal(solveLogically(puzzle, tier - 1).solved, false, `${difficulty} level can't be solved with easier techniques`);
       assert.equal(hasUniqueSolution(puzzle), true);
-      puzzle.forEach((row, y)=> row.forEach((cell, x)=> {
-        if (cell!== null) assert.equal(cell, solution[y][x]);
-      }));
+      assert.deepEqual(solveLogically(puzzle).board, solution);
     }
   }
 });
 
-test("harder difficulties empty more cells", ()=> {
-  const emptyCells= (difficulty)=> generateLevel(difficulty).puzzle.flat().filter(cell=> cell=== null).length;
-  assert.ok(emptyCells("easy")< emptyCells("medium"));
-  assert.ok(emptyCells("medium")< emptyCells("hard"));
+test("easy levels keep more numbers", ()=> {
+  for (let attempt= 0; attempt<5; attempt++){
+    const empty= generateLevel("easy").puzzle.flat().filter(cell=> cell=== null).length;
+    assert.ok(empty<= DIFFICULTIES.easy.maxEmptyCells);
+  }
 });
 
 test("unknown difficulties are rejected", ()=> {

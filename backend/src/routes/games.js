@@ -1,5 +1,5 @@
 const express= require("express");
-const {isValidDifficulty, DIFFICULTIES, DEFAULT_DIFFICULTY}= require("../levelGenerator");
+const {isValidDifficulty, techniquesByDifficulty, DIFFICULTIES, DEFAULT_DIFFICULTY}= require("../levelGenerator");
 const {isValidBoard, respectsPuzzle}= require("../boards");
 const {HINT_PENALTY_MS}= require("../games");
 
@@ -10,7 +10,12 @@ const gamesRouter= ({games})=> {
   const router= express.Router();
 
   router.get("/difficulties", (req, res)=> {
-    res.json({difficulties: Object.keys(DIFFICULTIES), default: DEFAULT_DIFFICULTY, hintPenaltyMs: HINT_PENALTY_MS});
+    res.json({
+      difficulties: Object.keys(DIFFICULTIES),
+      default: DEFAULT_DIFFICULTY,
+      techniques: techniquesByDifficulty(),
+      hintPenaltyMs: HINT_PENALTY_MS,
+    });
   });
 
   router.post("/", (req, res)=> {

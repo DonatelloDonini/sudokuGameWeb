@@ -30,7 +30,18 @@ const RULES= [
     items: [
       "Fill every empty cell with a number from 1 to 9.",
       "Each row, each column and each 3x3 box must contain every number from 1 to 9 exactly once.",
-      "Every puzzle has a single solution: you never need to guess.",
+      "Every puzzle has a single solution and can be solved with logic alone: you never need to guess.",
+    ],
+  },
+  {
+    title: "Difficulties",
+    items: [
+      "The difficulty depends on the reasoning a puzzle needs, not on how many cells are empty. Every puzzle needs at least one technique of its level, and nothing harder.",
+      "Easy: hidden singles (a number fits in only one cell of a row, column or box) and naked singles (a cell can only hold one number).",
+      "Medium: pointing and box/line reductions (a number confined to one line of a box, or to one box of a line), naked and hidden pairs.",
+      "Hard: naked and hidden triples, X-Wing.",
+      "Expert: XY-Wing, XYZ-Wing, Swordfish.",
+      "After solving a puzzle you can see the hardest technique it needed.",
     ],
   },
   {
@@ -458,6 +469,7 @@ class App{
     modal.setContent(
       el("p", {className: "big-number", text: formatDuration(result.durationMs)}),
       el("p", {text: `${capitalize(this.solo.difficulty)} sudoku solved${penalty}.`}),
+      result.hardestTechnique ? el("p", {text: `Hardest technique needed: ${result.hardestTechnique}.`}) : null,
       el("p", {className: "muted", text: result.ranked
         ? `You are #${result.rank} on the ${this.solo.difficulty} leaderboard.`
         : "Log in before starting a game to get on the leaderboard."}),
@@ -660,6 +672,7 @@ class App{
     const modal= new Modal(won ? "Victory!" : "Defeat");
     modal.setContent(
       el("p", {text: reasons[result.reason]}),
+      result.hardestTechnique ? el("p", {className: "muted", text: `This ${this.battle.difficulty} puzzle needed: ${result.hardestTechnique}.`}) : null,
       el("p", {className: "big-number", text: `${result.eloChange> 0 ? "+" : ""}${result.eloChange}`}),
       el("p", {className: "muted", text: `Your elo is now ${result.elo}.`}),
       el("div", {className: "modal-actions"},

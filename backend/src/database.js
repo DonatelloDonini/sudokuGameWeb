@@ -53,6 +53,24 @@ const SCHEMA= `
 `;
 
 /**
+ * Columns added after the first version: [table, column, definition].
+ * They are added to existing databases when the server starts.
+ */
+const ADDED_COLUMNS= [
+  // the hardest technique the level needs (see HumanSolver) and its difficulty score
+  ["games", "hardest_technique", "TEXT"],
+  ["games", "score", "INTEGER"],
+  ["battles", "hardest_technique", "TEXT"],
+];
+
+const addMissingColumns= (db)=> {
+  for (const [table, column, definition] of ADDED_COLUMNS){
+    const exists= db.prepare(`PRAGMA table_info(${table})`).all().some(info=> info.name=== column);
+    if (! exists) db.exec(`ALTER TABLE ${table} ADD COLUMN ${column} ${definition}`);
+  }
+};
+
+/**
  * Opens (creating it if needed) the SQLite database and makes sure the schema exists.
  * @param {string} filename The database file, or ":memory:" for a throwaway database.
  * @returns {DatabaseSync}
@@ -64,6 +82,7 @@ const openDatabase= (filename)=> {
   db.exec("PRAGMA foreign_keys = ON;");
   if (filename!== ":memory:") db.exec("PRAGMA journal_mode = WAL;");
   db.exec(SCHEMA);
+  addMissingColumns(db);
 
   return db;
 };

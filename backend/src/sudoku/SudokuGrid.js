@@ -2,6 +2,7 @@ const Grid= require("./Grid");
 const NumberPossibilities= require("./NumberPossibilities");
 const CellPossibilities= require("./CellPossibilities");
 const {hasUniqueSolution}= require("./SudokuSolver");
+const {solveLogically}= require("./HumanSolver");
 const {
   EmptyArgumentError,
   NumberNotInRangeError,
@@ -474,6 +475,43 @@ class SudokuGrid extends Grid{
       matrix[y][x]= null;
 
       if (hasUniqueSolution(matrix)){
+        this.deleteElement([x, y]);
+        emptiedCells++;
+      }
+      else{
+        matrix[y][x]= removedNumber;
+      }
+    }
+
+    return emptiedCells;
+  }
+
+  /**
+   * Turns the solved grid into a level that can be solved with the techniques up to `maxTier` (see HumanSolver).\
+   * Cells are emptied in random order, and a cell is only emptied if the level can still be solved with those
+   * techniques, so the level always has a single solution and never needs harder reasoning.
+   *
+   * @param {number} maxTier The hardest tier of techniques the player may need (1-4).
+   * @param {number} [maxCellsToEmpty] Stop after emptying this many cells.
+   * @returns {number} How many cells were emptied.
+   */
+  unsolveLogically(maxTier, maxCellsToEmpty= this.width*this.height){
+    const coords= [];
+    for (let y= 0; y<this.height; y++){
+      for (let x= 0; x<this.width; x++){
+        coords.push([x, y]);
+      }
+    }
+
+    let emptiedCells= 0;
+    const matrix= this.toArray();
+    for (const [x, y] of this._shuffle(coords)){
+      if (emptiedCells>= maxCellsToEmpty) break;
+
+      const removedNumber= matrix[y][x];
+      matrix[y][x]= null;
+
+      if (solveLogically(matrix, maxTier).solved){
         this.deleteElement([x, y]);
         emptiedCells++;
       }

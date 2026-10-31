@@ -77,7 +77,7 @@ export default class Modal{
    * @returns {Modal} The modal itself, for chaining.
    */
   setContent(...children){
-    this.#bodyElement.replaceChildren(...children);
+    this.#bodyElement.replaceChildren(...children.filter(child=> child!== null && child!== undefined));
     return this;
   }
 
