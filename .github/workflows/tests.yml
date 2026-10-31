@@ -57,7 +57,7 @@ jobs:
       # screenshots, traces and the HTML report of the failed browser tests
       - name: Upload the browser test report
         if: failure()
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v6
         with:
           name: playwright-report
           path: |
