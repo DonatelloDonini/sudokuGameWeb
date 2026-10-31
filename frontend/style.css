@@ -731,6 +731,67 @@ body[data-mode="battle"] .game-layout{
   font-weight: 700;
 }
 
+/* ---------- offline ---------- */
+
+.offline-chip{
+  padding: .2rem .65rem;
+  border-radius: 1rem;
+  background-color: var(--foreground);
+  color: var(--background);
+  font-size: .85rem;
+  font-weight: 700;
+}
+
+/* ---------- avatars (pixel-avatar module) ---------- */
+
+.avatar-image{
+  display: inline-flex;
+  flex-shrink: 0;
+}
+
+.avatar-image svg{
+  display: block;
+  border-radius: 22%;
+}
+
+.player-name{
+  display: inline-flex;
+  align-items: center;
+  gap: .4rem;
+  vertical-align: middle;
+}
+
+.account-button .avatar-image svg{
+  border-radius: 50%;
+}
+
+.versus-names{
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: .25rem;
+}
+
+.profile-header{
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: .5rem;
+}
+
+.modal-panel.modal-wide{
+  max-width: 46rem;
+}
+
+/* the editor of the pixel-avatar module, in the colors of the game */
+.pa-editor{
+  --pa-surface: var(--shadow);
+  --pa-surface-hover: color-mix(in srgb, var(--containers) 50%, var(--shadow));
+  --pa-border: var(--containers);
+  --pa-accent: var(--detail);
+  --pa-text: var(--foreground);
+}
+
 /* ---------- reports ---------- */
 
 a.button{
@@ -796,116 +857,11 @@ a.button{
   resize: vertical;
 }
 
-/* ---------- footer ---------- */
+/* ---------- header link ---------- */
 
-.page-footer{
-  padding: .75rem 1rem 1rem;
-  text-align: center;
-  font-size: .9rem;
-}
-
-.page-footer a,
-.docs a{
+.home-link{
   color: inherit;
-  text-underline-offset: 3px;
-}
-
-/* ---------- API documentation ---------- */
-
-.docs{
-  width: 100%;
-  max-width: 52rem;
-  margin: 0 auto;
-  padding: 1.25rem 1rem 3rem;
-  display: flex;
-  flex-direction: column;
-  gap: 1.5rem;
-  line-height: 1.6;
-}
-
-.docs .lead{
-  font-size: 1.1rem;
-}
-
-.docs-nav{
-  display: flex;
-  flex-wrap: wrap;
-  gap: .4rem .9rem;
-  padding: .75rem 1rem;
-  border-radius: .75rem;
-  background-color: var(--shadow);
-}
-
-.docs section{
-  display: flex;
-  flex-direction: column;
-  gap: .6rem;
-}
-
-.docs h2{
-  padding-bottom: .25rem;
-  border-bottom: 2px solid var(--shadow);
-  font-family: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
-  font-size: 1.25rem;
-}
-
-.docs .method{
-  padding: .05rem .45rem;
-  margin-right: .3rem;
-  border-radius: .3rem;
-  background-color: var(--detail);
-  color: var(--background);
-  font-size: .9rem;
-}
-
-.docs ul{
-  padding-left: 1.25rem;
-}
-
-.docs code,
-.docs pre{
-  font-family: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
-  font-size: .88em;
-}
-
-.docs code{
-  padding: .05rem .3rem;
-  border-radius: .3rem;
-  background-color: var(--shadow);
-  overflow-wrap: anywhere;
-}
-
-.docs pre{
-  padding: .8rem 1rem;
-  border-radius: .5rem;
-  background-color: var(--shadow);
-  overflow-x: auto;
-  line-height: 1.45;
-}
-
-.docs table{
-  width: 100%;
-  border-collapse: collapse;
-}
-
-.docs th,
-.docs td{
-  padding: .4rem .5rem;
-  text-align: left;
-  vertical-align: top;
-  border-bottom: 1px solid var(--shadow);
-}
-
-.try-form{
-  display: flex;
-  flex-wrap: wrap;
-  gap: .5rem;
-}
-
-#try-output{
-  max-height: 24rem;
-  white-space: pre-wrap;
-  overflow-wrap: anywhere;
+  text-decoration: none;
 }
 
 /* ---------- small screens ---------- */

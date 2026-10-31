@@ -22,9 +22,11 @@ export default class Modal{
    * @param {Object} [options]
    * @param {boolean} [options.dismissible] Whether the user can close it (default true).
    * @param {Function} [options.onClose] Called after the modal is hidden.
+   * @param {boolean} [options.wide] For bigger contents (e.g. the avatar editor).
    */
   constructor(title, options= {}){
     this.title= title;
+    this.wide= options.wide ?? false;
     this.dismissible= options.dismissible ?? true;
     this.onClose= options.onClose ?? (()=> {});
     this.isShown= false;
@@ -43,7 +45,7 @@ export default class Modal{
     this.#bodyElement= el("div", {className: "modal-body"});
 
     const titleId= `modal-title-${Math.random().toString(36).slice(2)}`;
-    this.#panelElement= el("div", {className: "modal-panel", role: "dialog", "aria-modal": "true", "aria-labelledby": titleId},
+    this.#panelElement= el("div", {className: `modal-panel${this.wide ? " modal-wide" : ""}`, role: "dialog", "aria-modal": "true", "aria-labelledby": titleId},
       el("h2", {className: "modal-title", id: titleId, text: this.title}),
       this.#bodyElement,
     );

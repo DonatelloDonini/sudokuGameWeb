@@ -1,6 +1,7 @@
 import Modal from "./Modal.js";
 import { api } from "./api.js";
 import { el, formatDuration, icon, ICONS } from "./utils.js";
+import { playerName } from "./avatars.js";
 
 const capitalize= (text)=> text.charAt(0).toUpperCase() + text.slice(1);
 
@@ -71,7 +72,7 @@ export default class Leaderboard{
 
     const username= this.getUsername();
     return table(["#", "Player", "Elo", "W", "L", ...this.#reportHeader()], players.map((player, i)=> ({
-      cells: [i+1, player.username, player.elo, player.wins, player.losses, ...this.#reportCell(player.username)],
+      cells: [i+1, playerName(player.username, player.avatar), player.elo, player.wins, player.losses, ...this.#reportCell(player.username)],
       highlighted: player.username=== username,
     })));
   }
@@ -82,7 +83,7 @@ export default class Leaderboard{
 
     const username= this.getUsername();
     return table(["#", "Player", "Best time", "Solved", ...this.#reportHeader()], players.map((player, i)=> ({
-      cells: [i+1, player.username, formatDuration(player.bestMs), player.completed, ...this.#reportCell(player.username)],
+      cells: [i+1, playerName(player.username, player.avatar), formatDuration(player.bestMs), player.completed, ...this.#reportCell(player.username)],
       highlighted: player.username=== username,
     })));
   }

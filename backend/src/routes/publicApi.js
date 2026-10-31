@@ -68,7 +68,7 @@ const publicApiRouter= ({levels})=> {
     res.json({
       name: "Sudoku API",
       version: 1,
-      documentation: "/api.html",
+      documentation: "/developers/",
       endpoints: {
         "GET /api/v1/difficulties": "the difficulties and the techniques each one needs",
         "GET /api/v1/puzzles?difficulty=medium&count=1&format=array": `new graded puzzles with their solution (up to ${MAX_PUZZLES_PER_REQUEST})`,

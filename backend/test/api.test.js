@@ -31,6 +31,20 @@ describe("misc", ()=> {
     assert.equal(response.status, 400);
   });
 
+  test("the old documentation address leads to the developers area", async ()=> {
+    const response= await fetch(`${server.baseUrl}/api.html`, {redirect: "manual"});
+    assert.equal(response.status, 301);
+    assert.equal(response.headers.get("location"), "/developers/");
+  });
+
+  test("the landing page, the game and the developers area are served", async ()=> {
+    for (const [path, title]of [["/play/", "Sudoku"], ["/developers/", "Sudoku for developers"]]){
+      const response= await fetch(`${server.baseUrl}${path}`);
+      assert.equal(response.status, 200, path);
+      assert.match(await response.text(), new RegExp(`<title>${title}</title>`), path);
+    }
+  });
+
   test("the frontend is served from /", async ()=> {
     const response= await fetch(`${server.baseUrl}/`);
     assert.equal(response.status, 200);

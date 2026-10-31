@@ -606,6 +606,16 @@ textarea.input{
   color: var(--on-danger);
 }
 
+.avatar-image{
+  display: inline-flex;
+  flex-shrink: 0;
+}
+
+.avatar-image svg{
+  display: block;
+  border-radius: 22%;
+}
+
 .cellWithBadge{
   display: inline-flex;
   flex-wrap: wrap;

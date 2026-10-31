@@ -1,3 +1,5 @@
+const {avatarCodeOf}= require("./avatars");
+
 const STARTING_ELO= 1200;
 
 /**
@@ -37,6 +39,14 @@ class Users{
     this.db.prepare("UPDATE users SET elo = ? WHERE id = ?").run(elo, id);
   }
 
+  /**
+   * @param {number} id
+   * @param {string} code A valid avatar code.
+   */
+  setAvatar(id, code){
+    this.db.prepare("UPDATE users SET avatar = ? WHERE id = ?").run(code, id);
+  }
+
   setAdmin(id, isAdmin){
     this.db.prepare("UPDATE users SET is_admin = ? WHERE id = ?").run(isAdmin ? 1 : 0, id);
   }
@@ -74,6 +84,7 @@ class Users{
     return {
       id: user.id,
       username: user.username,
+      avatar: avatarCodeOf(user),
       elo: user.elo,
       battlesPlayed: battles.played,
       battlesWon: battles.wins,

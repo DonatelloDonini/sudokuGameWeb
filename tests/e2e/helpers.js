@@ -11,7 +11,7 @@ export const uniqueName= (prefix)=> `${prefix}_${Math.random().toString(36).slic
  * Opens the game and waits for the board.
  */
 export const openGame= async (page)=> {
-  await page.goto("/");
+  await page.goto("/play/");
   await expect(page.locator(".cell")).toHaveCount(81);
   await expect(page.locator(".status-bar .clock")).toBeVisible();
 };

@@ -1,5 +1,6 @@
 const express= require("express");
 const {hashPassword, verifyPassword}= require("../auth");
+const {normalizeAvatarCode}= require("../avatars");
 
 const USERNAME_PATTERN= /^[A-Za-z0-9_]{3,20}$/;
 const MIN_PASSWORD_LENGTH= 6;
@@ -59,6 +60,16 @@ const authRouter= ({users, sessions})=> {
     if (req.sessionToken) sessions.destroy(req.sessionToken);
     sessions.clearCookie(res);
     res.json({user: null});
+  });
+
+  router.post("/avatar", (req, res)=> {
+    if (! req.user) return res.status(401).json({error: "Log in to change your avatar."});
+
+    const code= normalizeAvatarCode(req.body?.avatar);
+    if (! code) return res.status(400).json({error: "avatar must be an avatar code (see the pixel-avatar module)."});
+
+    users.setAvatar(req.user.id, code);
+    res.json({user: users.toPublic(users.findById(req.user.id))});
   });
 
   router.get("/me", (req, res)=> {

@@ -1,6 +1,8 @@
 import Modal from "./Modal.js";
 import { api } from "./api.js";
 import { el } from "./utils.js";
+import { avatarImage } from "./avatars.js";
+import { openAvatarDialog } from "./AvatarDialog.js";
 
 /**
  * Login / registration form for guests, profile and logout for logged in users.
@@ -31,7 +33,16 @@ export default class AccountDialog{
     const stat= (label, value)=> el("div", {className: "stat"}, el("span", {className: "stat-value", text: String(value)}), el("span", {className: "stat-label", text: label}));
 
     this.modal.setContent(
-      el("p", {className: "profile-name", text: user.username}),
+      el("div", {className: "profile-header"},
+        avatarImage(user.avatar, {size: 96, name: user.username}),
+        el("p", {className: "profile-name", text: user.username}),
+        el("button", {className: "button", type: "button", text: "Edit avatar", onClick: async ()=> {
+          this.modal.hide();
+          const updated= await openAvatarDialog(user);
+          if (updated) this.onUserChange(updated);
+          this.show();
+        }}),
+      ),
       el("div", {className: "stats"},
         stat("Elo", user.elo),
         stat("Battles won", user.battlesWon),
@@ -39,7 +50,7 @@ export default class AccountDialog{
         stat("Sudokus solved", user.gamesCompleted),
       ),
       el("div", {className: "modal-actions"},
-        user.isAdmin ? el("a", {className: "button", href: "admin.html", text: "Admin dashboard"}) : null,
+        user.isAdmin ? el("a", {className: "button", href: "/admin.html", text: "Admin dashboard"}) : null,
         el("button", {className: "button", type: "button", text: "Log out", onClick: async ()=> {
           await api.logout().catch(()=> {});
           this.modal.hide();

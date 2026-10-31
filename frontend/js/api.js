@@ -44,6 +44,7 @@ export const api= {
   register: (username, password)=> request("/auth/register", {username, password}),
   login: (username, password)=> request("/auth/login", {username, password}),
   logout: ()=> request("/auth/logout", {}),
+  setAvatar: (avatar)=> request("/auth/avatar", {avatar}),
 
   newGame: (difficulty)=> request("/games", {difficulty}),
   hint: (gameId, board)=> request(`/games/${gameId}/hint`, {board}),

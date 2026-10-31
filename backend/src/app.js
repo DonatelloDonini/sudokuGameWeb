@@ -13,6 +13,7 @@ const {reportsRouter}= require("./routes/reports");
 const {adminRouter}= require("./routes/admin");
 const {generateLevel}= require("./levelGenerator");
 const {rateLimit}= require("./rateLimit");
+const {AVATAR_MODULE_DIR, normalizeAvatarCode, avatarSVG}= require("./avatars");
 
 const DEFAULT_FRONTEND_DIR= path.resolve(__dirname, "../../frontend");
 
@@ -76,6 +77,16 @@ const createApp= ({services, frontendDir= DEFAULT_FRONTEND_DIR, publicApiRateLim
     res.json({status: "ok"});
   });
 
+  // any avatar as an image: the code is the whole avatar, so the answer never changes
+  app.get("/api/avatars/:code.svg", (req, res)=> {
+    const code= normalizeAvatarCode(req.params.code);
+    if (! code) return res.status(400).json({error: "Not an avatar code."});
+
+    const size= Math.min(512, Math.max(24, Number(req.query.size) || 96));
+    res.set("Cache-Control", "public, max-age=31536000, immutable");
+    res.type("image/svg+xml").send(avatarSVG(code, size));
+  });
+
   app.use("/api/auth", authRouter(services));
   app.use("/api/games", gamesRouter(services));
   app.use("/api/leaderboard", leaderboardRouter(services));
@@ -85,6 +96,12 @@ const createApp= ({services, frontendDir= DEFAULT_FRONTEND_DIR, publicApiRateLim
   app.use("/api", (req, res)=> {
     res.status(404).json({error: "not found"});
   });
+
+  // the browser files of the avatar module (the pages import it as "pixel-avatar", see their import maps)
+  app.use("/vendor/pixel-avatar", express.static(AVATAR_MODULE_DIR));
+
+  // the API documentation moved to the developers area
+  app.get("/api.html", (req, res)=> res.redirect(301, "/developers/"));
 
   app.use(express.static(frontendDir));
 

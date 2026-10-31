@@ -36,7 +36,7 @@ export default defineConfig({
       // the phone layout and touch input, on the pages a phone player uses
       name: "mobile",
       use: {...devices["Pixel 7"]},
-      testMatch: ["layout.spec.js", "solo.spec.js"],
+      testMatch: ["layout.spec.js", "solo.spec.js", "landing.spec.js", "offline.spec.js"],
     },
   ],
 });

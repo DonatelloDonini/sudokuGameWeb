@@ -6,6 +6,7 @@ import { ADMIN_ICONS } from "../pages.js";
 import { formatDateTime, formatDuration, capitalize } from "../format.js";
 import Modal from "../../Modal.js";
 import { el, icon, fill } from "../../utils.js";
+import { avatarImage } from "../../avatars.js";
 
 const STATUSES= [
   {label: "Open", value: "open"},
@@ -116,6 +117,7 @@ async function showReport(main, reportId){
     ),
 
     panel({title: `Player: ${reported.username}`, actions: reported.banned ? [badge("Banned", "danger")] : []},
+      el("div", {className: "playerSummary"}, avatarImage(reported.avatar, {size: 64, name: reported.username})),
       el("div", {className: "tiles"},
         statTile("Elo", reported.elo),
         statTile("Battles", `${reported.battlesWon}/${reported.battlesPlayed}`, {hint: "won / played"}),

@@ -3,35 +3,107 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="description" content="The classic sudoku game: solo games with a leaderboard and online battles." />
+    <meta name="description" content="The classic sudoku: puzzles graded by the techniques they need, online battles against players of your level, leaderboards, and offline play." />
     <title>Sudoku</title>
-    <link rel="stylesheet" href="style.css"/>
-    <script src="js/main.js" type="module"></script>
+    <link rel="stylesheet" href="/site/site.css"/>
+    <link rel="manifest" href="/manifest.webmanifest"/>
+    <link rel="icon" href="/icon.svg" type="image/svg+xml"/>
+    <script src="/site/site.js" type="module"></script>
   </head>
   <body>
-    <header class="page-header">
-      <h1>Sudoku</h1>
-      <div class="header-actions" id="header-actions"></div>
+    <header class="site-header">
+      <a class="site-logo" href="/" aria-label="Sudoku, home">
+        <span class="site-logo-mark" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></span>
+        Sudoku
+      </a>
+      <button class="site-menu-button" type="button" aria-expanded="false" aria-controls="site-navigation">Menu</button>
+      <nav class="site-nav" id="site-navigation" aria-label="Site">
+        <a href="#features">Features</a>
+        <a href="/developers/">Developers</a>
+        <a class="button button-primary" href="/play/">Play</a>
+      </nav>
     </header>
 
-    <main class="page">
-      <nav class="mode-tabs" id="mode-tabs" role="tablist" aria-label="Game mode"></nav>
+    <main class="landing">
+      <section class="section hero" aria-labelledby="hero-title">
+        <div class="hero-text">
+          <h1 id="hero-title">The classic sudoku, with a rival.</h1>
+          <p class="hero-lead">
+            Puzzles graded by the reasoning they need, not by how many cells are empty.
+            Play alone against the clock, or race a player of your level on the same grid.
+          </p>
+          <div class="hero-actions">
+            <a class="button button-primary button-large" href="/play/">Play now</a>
+            <a class="button button-large" href="/play/#battle">Find a rival</a>
+          </div>
+          <p class="muted">Free, no account needed to play. Works on phones, and offline.</p>
+        </div>
+        <div class="hero-board" id="hero-board" role="img" aria-label="A sudoku being solved, with notes in some cells"></div>
+      </section>
 
-      <section class="game-layout" aria-label="Game">
-        <div class="status-bar" id="status-bar"></div>
-        <div class="board-area" id="board-area"></div>
-        <div class="side">
-          <div class="controls" id="controls"></div>
-          <div class="number-pad" id="number-pad"></div>
-          <p class="message" id="message" aria-live="polite"></p>
+      <section class="section" id="features" aria-labelledby="features-title">
+        <h2 class="section-title" id="features-title">Everything a sudoku player wants</h2>
+        <div class="features">
+          <article class="feature">
+            <h3>Fair difficulty</h3>
+            <p>Every puzzle has a single solution and needs the techniques of its level: singles for easy, up to X-Wings and Swordfish for expert. Never a guess.</p>
+          </article>
+          <article class="feature">
+            <h3>Online battles</h3>
+            <p>You're matched with a player of your elo, you both get the same grid at the same time, and the first to solve it wins. You see their progress, not their numbers.</p>
+          </article>
+          <article class="feature">
+            <h3>Pencil, hints and undo</h3>
+            <p>Write notes in the cells, see mistakes in red, undo anything. Stuck? A hint fixes your mistake or shows the next number.</p>
+          </article>
+          <article class="feature">
+            <h3>Leaderboards</h3>
+            <p>The best time of every player on each difficulty, and the battle ranking. Times are measured by the server, and cheaters can be reported.</p>
+          </article>
+          <article class="feature">
+            <h3>Plays offline</h3>
+            <p>A few puzzles of every difficulty are kept on your device: on a plane or in the subway, you can keep playing.</p>
+          </article>
+          <article class="feature">
+            <h3>Your pixel avatar</h3>
+            <p>Build your own pixel-art face, from the hair to the hat. Your rivals see it in battles and on the leaderboards.</p>
+          </article>
         </div>
       </section>
+
+      <div class="band">
+        <section class="section developers-teaser" aria-labelledby="developers-title">
+          <div>
+            <h2 class="section-title" id="developers-title">Making your own sudoku game?</h2>
+            <p>
+              Use our puzzles instead of writing a generator: graded puzzles with their solution, a solver, a difficulty grader
+              and step by step hints, free and without an account.
+            </p>
+            <div class="hero-actions">
+              <a class="button button-primary" href="/developers/">Go to the developers area</a>
+            </div>
+          </div>
+          <pre class="code-sample" aria-label="Example request">GET /api/v1/puzzles?difficulty=hard
+
+{
+  "puzzles": [{
+    "difficulty": "hard",
+    "puzzle": "..9.4...1.3...7..5...",
+    "solution": "759842361831697245...",
+    "hardestTechnique": "X-Wing"
+  }]
+}</pre>
+        </section>
+      </div>
     </main>
 
-    <footer class="page-footer">
-      <a href="api.html">Sudoku API for developers</a>
+    <footer class="site-footer">
+      <span>Sudoku</span>
+      <nav aria-label="Footer">
+        <a href="/play/">Play</a>
+        <a href="/play/#battle">Battle</a>
+        <a href="/developers/">Developers</a>
+      </nav>
     </footer>
-
-    <noscript>This game needs JavaScript.</noscript>
   </body>
 </html>

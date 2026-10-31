@@ -37,9 +37,11 @@ test.describe("layout", ()=> {
     await expect(dialog).toBeHidden();
   });
 
-  test("the API documentation works", async ({page})=> {
+  test("the developers area works, and the old documentation address leads to it", async ({page})=> {
     await page.goto("/api.html");
-    await expect(page.getByRole("heading", {name: "Sudoku API"})).toBeVisible();
+    await expect(page).toHaveURL(/\/developers\/$/);
+    await expect(page.getByRole("heading", {name: "Sudoku for developers"})).toBeVisible();
+    await expect(page.locator("#quick-start pre").first()).toContainText(`${new URL(page.url()).origin}/api/v1/puzzles`);
     await page.locator("#try-form select[name=difficulty]").selectOption("easy");
     await page.getByRole("button", {name: "Get a puzzle"}).click();
     await expect(page.locator("#try-output")).toContainText("hardestTechnique");

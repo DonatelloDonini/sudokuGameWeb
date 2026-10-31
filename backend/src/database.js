@@ -93,6 +93,8 @@ const ADDED_COLUMNS= [
   ["users", "is_admin", "INTEGER NOT NULL DEFAULT 0"],
   ["users", "banned_at", "INTEGER"],
   ["users", "ban_reason", "TEXT"],
+  // the code of the user's pixel avatar (see the pixel-avatar module), null until they make one
+  ["users", "avatar", "TEXT"],
 ];
 
 const addMissingColumns= (db)=> {

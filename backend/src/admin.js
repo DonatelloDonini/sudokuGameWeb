@@ -1,4 +1,5 @@
 const fs= require("node:fs");
+const {avatarCodeOf}= require("./avatars");
 
 const DAY_MS= 24 * 60 * 60 * 1000;
 
@@ -92,7 +93,7 @@ class AdminData{
   userList(search= ""){
     return this.db.prepare(`
       SELECT
-        u.id, u.username, u.elo, u.created_at AS createdAt,
+        u.id, u.username, u.avatar, u.elo, u.created_at AS createdAt,
         u.is_admin = 1 AS isAdmin,
         u.banned_at AS bannedAt, u.ban_reason AS banReason,
         (SELECT COUNT(*) FROM games g WHERE g.user_id = u.id AND g.status = 'completed') AS gamesCompleted,
@@ -103,7 +104,7 @@ class AdminData{
       WHERE u.username LIKE ? ESCAPE '\\'
       ORDER BY u.created_at DESC
       LIMIT 500
-    `).all(`%${search.replace(/[\\%_]/g, (char)=> `\\${char}`)}%`).map(user=> ({...user, isAdmin: user.isAdmin=== 1}));
+    `).all(`%${search.replace(/[\\%_]/g, (char)=> `\\${char}`)}%`).map(user=> ({...user, isAdmin: user.isAdmin=== 1, avatar: avatarCodeOf(user)}));
   }
 
   recentBattles(){

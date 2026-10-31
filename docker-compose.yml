@@ -1,6 +1,10 @@
 services:
   sudoku:
-    build: .
+    build:
+      context: .
+      # read access to the private pixel-avatar repository, from the GITHUB_TOKEN environment variable
+      secrets:
+        - github_token
     image: sudoku-game-web
     ports:
       - "${PORT:-3000}:3000"
@@ -17,3 +21,7 @@ services:
 
 volumes:
   sudoku-data:
+
+secrets:
+  github_token:
+    environment: GITHUB_TOKEN

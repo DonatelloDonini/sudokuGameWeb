@@ -3,6 +3,7 @@ const {generateLevel}= require("../levelGenerator");
 const {transaction}= require("../database");
 const {boardsEqual, copyBoard, countEmpty}= require("../boards");
 const {eloChange, difficultyForElo}= require("./elo");
+const {avatarCodeOf}= require("../avatars");
 
 /**
  * Matchmaking: players are only matched with someone with exactly their elo at first,
@@ -188,6 +189,7 @@ class BattleManager{
         return {
           userId: user.id,
           username: user.username,
+          avatar: avatarCodeOf(user),
           eloBefore: user.elo,
           board: copyBoard(puzzle),
           /** every move, stored with the battle as evidence for the cheating reports */
@@ -360,6 +362,7 @@ class BattleManager{
       elo: player.eloBefore,
       opponent: {
         username: opponent.username,
+        avatar: opponent.avatar,
         elo: opponent.eloBefore,
         connected: this.connections.has(opponent.userId),
         progress: this._progress(battle, opponent),

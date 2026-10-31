@@ -1,0 +1,13 @@
+{
+  "name": "Sudoku",
+  "short_name": "Sudoku",
+  "description": "The classic sudoku: graded puzzles, online battles, leaderboards, and offline play.",
+  "start_url": "/play/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#FEFCFB",
+  "theme_color": "#1282A2",
+  "icons": [
+    {"src": "/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any"}
+  ]
+}

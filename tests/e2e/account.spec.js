@@ -53,6 +53,7 @@ test.describe("accounts and leaderboard", ()=> {
     await expect(victory).toContainText(/You are #\d+ on the \w+ leaderboard/);
     await victory.getByRole("button", {name: "Leaderboard"}).click();
     await expect(page.locator(".leaderboard-table tr.current-user")).toContainText(champion);
+    await expect(page.locator(".leaderboard-table tr.current-user").getByRole("img", {name: `${champion}'s avatar`})).toBeVisible();
 
     // another player reports the time
     const otherContext= await browser.newContext();

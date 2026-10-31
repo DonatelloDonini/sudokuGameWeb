@@ -1,4 +1,9 @@
+const {avatarCodeOf}= require("./avatars");
+
 const DEFAULT_LIMIT= 20;
+
+/** Every player of the rankings comes with their avatar code. */
+const withAvatar= ({avatar, ...row})=> ({...row, avatar: avatarCodeOf({avatar, username: row.username})});
 
 /**
  * Players ranked by elo, among the ones who played at least one battle.
@@ -8,6 +13,7 @@ const DEFAULT_LIMIT= 20;
 const eloLeaderboard= (db, limit= DEFAULT_LIMIT)=> db.prepare(`
   SELECT
     u.username,
+    u.avatar,
     u.elo,
     COUNT(b.id)                        AS played,
     COALESCE(SUM(b.winner_id = u.id), 0) AS wins
@@ -17,7 +23,7 @@ const eloLeaderboard= (db, limit= DEFAULT_LIMIT)=> db.prepare(`
   GROUP BY u.id
   ORDER BY u.elo DESC, wins DESC, u.username
   LIMIT ?
-`).all(limit).map(row=> ({...row, losses: row.played - row.wins}));
+`).all(limit).map(row=> withAvatar({...row, losses: row.played - row.wins}));
 
 /**
  * Best single player time of each user on a difficulty.
@@ -28,6 +34,7 @@ const eloLeaderboard= (db, limit= DEFAULT_LIMIT)=> db.prepare(`
 const timesLeaderboard= (db, difficulty, limit= DEFAULT_LIMIT)=> db.prepare(`
   SELECT
     u.username,
+    u.avatar,
     MIN(g.duration_ms) AS bestMs,
     COUNT(*)           AS completed
   FROM games g
@@ -36,6 +43,6 @@ const timesLeaderboard= (db, difficulty, limit= DEFAULT_LIMIT)=> db.prepare(`
   GROUP BY u.id
   ORDER BY bestMs, u.username
   LIMIT ?
-`).all(difficulty, limit);
+`).all(difficulty, limit).map(withAvatar);
 
 module.exports= {eloLeaderboard, timesLeaderboard};

@@ -4,6 +4,7 @@ import DataTable from "../DataTable.js";
 import { formatDate } from "../format.js";
 import Modal from "../../Modal.js";
 import { el } from "../../utils.js";
+import { avatarImage } from "../../avatars.js";
 
 /**
  * The players: search, ban/unban, admin rights.
@@ -22,6 +23,7 @@ export async function render(main){
     rows: [],
     columns: [
       {key: "username", label: "Username", format: (value, row)=> el("span", {className: "cellWithBadge"},
+        avatarImage(row.avatar, {size: 28, name: value}),
         value,
         row.isAdmin ? badge("Admin", "accent") : null,
         row.bannedAt ? badge("Banned", "danger") : null,

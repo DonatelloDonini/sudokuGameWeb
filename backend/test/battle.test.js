@@ -6,6 +6,7 @@ const {Users}= require("../src/users");
 const {BattleManager, SEARCH_WINDOW_STEP_MS}= require("../src/battle/BattleManager");
 const {eloChange, expectedScore, difficultyForElo}= require("../src/battle/elo");
 const {startServer, createClient, SOLUTION, copy}= require("./helpers");
+const {avatarCodeOf}= require("../src/avatars");
 
 /** The puzzle used by the battles: the fixed solution with the first two rows emptied. */
 const PUZZLE= SOLUTION.map((row, y)=> y< 2 ? new Array(9).fill(null) : [...row]);
@@ -103,6 +104,7 @@ describe("BattleManager", ()=> {
     assert.equal(aliceStart.startsInMs, 3000);
     assert.equal(aliceStart.difficulty, "medium");
     assert.equal(aliceStart.opponent.username, "bob");
+    assert.equal(aliceStart.opponent.avatar, avatarCodeOf(bob.user), "players see their opponent's avatar");
     assert.equal(aliceStart.solution, undefined, "the solution is not sent before the end");
   });
 
@@ -171,7 +173,7 @@ describe("BattleManager", ()=> {
     assert.equal(stored.end_reason, "solved");
     assert.equal(stored.elo_change, 16);
     assert.deepEqual(users.toPublic(users.findById(alice.user.id)), {
-      id: alice.user.id, username: "alice", elo: 1216, battlesPlayed: 1, battlesWon: 1, battlesLost: 0, gamesCompleted: 0, isAdmin: false,
+      id: alice.user.id, username: "alice", avatar: avatarCodeOf(alice.user), elo: 1216, battlesPlayed: 1, battlesWon: 1, battlesLost: 0, gamesCompleted: 0, isAdmin: false,
     });
   });
 

@@ -32,7 +32,7 @@ document.addEventListener("DOMContentLoaded", async ()=> {
       el("p", {text: user
         ? "Your account can't open the dashboard. An admin can give you access from the Users page."
         : "Log in on the game with an admin account, then come back."}),
-      el("a", {className: "button button-primary", href: "./", text: "Go to the game"}),
+      el("a", {className: "button button-primary", href: "/play/", text: "Go to the game"}),
     ));
     return;
   }
@@ -80,11 +80,11 @@ const buildSidebar= (user)=> {
 
   // the profile box opens a menu with the links to the rest of the game
   const menu= el("div", {className: "profileMenuItems", role: "menu", hidden: true},
-    el("a", {role: "menuitem", href: "./", text: "Play sudoku"}),
-    el("a", {role: "menuitem", href: "api.html", text: "API documentation"}),
+    el("a", {role: "menuitem", href: "/play/", text: "Play sudoku"}),
+    el("a", {role: "menuitem", href: "/developers/", text: "Developers area"}),
     el("button", {role: "menuitem", type: "button", text: "Log out", onClick: async ()=> {
       await adminApi.logout().catch(()=> {});
-      location.href= "./";
+      location.href= "/";
     }}),
   );
   const profileBox= el("button", {type: "button", id: "profileBox", "aria-haspopup": "menu", "aria-expanded": "false"},

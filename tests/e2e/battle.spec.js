@@ -41,7 +41,8 @@ test.describe("battles", ()=> {
     await alpha.page.getByRole("button", {name: "Find opponent"}).click();
     await bravo.page.getByRole("button", {name: "Find opponent"}).click();
     await expect(alpha.page.locator(".board-overlay")).toHaveText(/^[1-3]$/);
-    await expect(alpha.page.locator(".versus-names")).toContainText(`${alpha.username} (1200) vs ${bravo.username} (1200)`);
+    await expect(alpha.page.locator(".versus-names")).toHaveText(new RegExp(`${alpha.username} \\(1200\\) vs .*${bravo.username} \\(1200\\)`));
+    await expect(alpha.page.getByRole("img", {name: `${bravo.username}'s avatar`})).toBeVisible();
     await expect(alpha.page.locator(".board-overlay")).toBeHidden({timeout: 8000});
     await expect(bravo.page.locator(".board-overlay")).toBeHidden({timeout: 8000});
 

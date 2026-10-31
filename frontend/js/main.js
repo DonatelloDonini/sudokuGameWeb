@@ -8,6 +8,9 @@ import Modal from "./Modal.js";
 import { api, ApiError } from "./api.js";
 import { applyRandomPalette } from "./Palette.js";
 import { openReportDialog } from "./ReportDialog.js";
+import { avatarImage, playerName } from "./avatars.js";
+import OfflineLevels from "./OfflineLevels.js";
+import { localHint, isSolved } from "./offlineGame.js";
 import { el, icon, ICONS, formatDuration, loadFromStorage, saveToStorage } from "./utils.js";
 
 const DIFFICULTIES= ["easy", "medium", "hard", "expert"];
@@ -18,6 +21,8 @@ const STORAGE_KEYS= Object.freeze({
   soloGame: "sudoku-solo-game",
   difficulty: "sudoku-difficulty",
   mode: "sudoku-mode",
+  // the logged in user, to show the account when the game opens offline
+  user: "sudoku-user",
 });
 
 /**
@@ -69,6 +74,14 @@ const RULES= [
     ],
   },
   {
+    title: "Offline",
+    items: [
+      `${OfflineLevels.PER_DIFFICULTY} puzzles of every difficulty are kept on this device: without a connection, "New game" plays one of them. They are downloaded again when you're back online.`,
+      "The game opens without a connection once you have played online. Offline games aren't ranked and battles need a connection.",
+      "If the connection drops during an online game, finish it: your time is sent when you're back online.",
+    ],
+  },
+  {
     title: "Leaderboard",
     items: [
       "Log in to have your solo times saved: the leaderboard keeps the best time of each player on every difficulty.",
@@ -115,6 +128,9 @@ class App{
     this.battle= {phase: "idle", game: null, connected: false};
     this.battleClient= new BattleClient();
 
+    this.online= navigator.onLine;
+    this.offlineLevels= new OfflineLevels();
+
     /** Shown in battle mode while there is no battle. */
     this.placeholderGame= new SudokuGame(Array.from({length: 9}, ()=> new Array(9).fill(null)), {readOnly: true});
 
@@ -132,16 +148,26 @@ class App{
     document.addEventListener("keydown", (event)=> this.#onKeyDown(event));
     setInterval(()=> this.#tick(), 250);
 
+    // the game opens offline once visited (sw.js)
+    navigator.serviceWorker?.register("/sw.js").catch(()=> {});
+    window.addEventListener("online", ()=> this.#onConnectionChange(true));
+    window.addEventListener("offline", ()=> this.#onConnectionChange(false));
+
     try {
       this.user= (await api.me()).user;
+      saveToStorage(STORAGE_KEYS.user, this.user);
     }
-    catch {
-      this.user= null;
+    catch (error) {
+      // offline: the account of the last visit
+      this.user= error instanceof ApiError && error.status=== 0 ? loadFromStorage(STORAGE_KEYS.user) : null;
     }
     this.#renderAccountButton();
+    if (this.online) this.#refillOfflineLevels();
 
     await this.#loadSoloGame();
-    this.setMode(loadFromStorage(STORAGE_KEYS.mode, "solo")=== "battle" ? "battle" : "solo");
+    // /play/#battle (from the landing page) opens the battles, otherwise the mode of the last visit
+    const requestedMode= location.hash=== "#battle" ? "battle" : loadFromStorage(STORAGE_KEYS.mode, "solo");
+    this.setMode(requestedMode=== "battle" ? "battle" : "solo");
   }
 
   //////      //////
@@ -153,7 +179,8 @@ class App{
 
     this.leaderboardButton= el("button", {className: "round-button", type: "button", title: "Leaderboard", "aria-label": "Show the leaderboard", onClick: ()=> this.leaderboard.show(this.mode=== "solo" ? this.solo?.difficulty : "elo")}, icon(ICONS.trophy));
     this.accountButton= el("button", {className: "account-button", type: "button", onClick: ()=> this.#openAccount()});
-    headerActions.append(this.leaderboardButton, this.accountButton, new RulesButton(RULES).DOMElement);
+    this.offlineChip= el("span", {className: "offline-chip", role: "status", text: "Offline", hidden: this.online});
+    headerActions.append(this.offlineChip, this.leaderboardButton, this.accountButton, new RulesButton(RULES).DOMElement);
 
     this.soloTab= el("button", {className: "tab", type: "button", role: "tab", text: "Solo", onClick: ()=> this.setMode("solo")});
     this.battleTab= el("button", {className: "tab", type: "button", role: "tab", text: "Battle", onClick: ()=> this.setMode("battle")});
@@ -193,7 +220,7 @@ class App{
 
   #renderAccountButton(){
     this.accountButton.replaceChildren(
-      icon(ICONS.user),
+      this.user ? avatarImage(this.user.avatar, {size: 28, name: this.user.username}) : icon(ICONS.user),
       el("span", {className: "account-label", text: this.user ? `${this.user.username} · ${this.user.elo}` : "Log in"}),
     );
     this.accountButton.setAttribute("aria-label", this.user ? `Account of ${this.user.username}` : "Log in or register");
@@ -258,6 +285,7 @@ class App{
   async setUser(user){
     const previousUserId= this.user?.id ?? null;
     this.user= user;
+    saveToStorage(STORAGE_KEYS.user, user);
     this.#renderAccountButton();
 
     if (! user){
@@ -378,6 +406,11 @@ class App{
     if (! DIFFICULTIES.includes(difficulty)) difficulty= DEFAULT_DIFFICULTY;
     saveToStorage(STORAGE_KEYS.difficulty, difficulty);
 
+    if (! navigator.onLine){
+      this.#startOfflineGame(difficulty);
+      return;
+    }
+
     this.soloBusy= true;
     this.showMessage("Generating a new puzzle…");
     try {
@@ -395,12 +428,70 @@ class App{
       this.showMessage(created.ranked ? "" : "Playing as a guest: log in to get your times on the leaderboard.");
     }
     catch (error) {
+      if (error instanceof ApiError && error.status=== 0){
+        this.soloBusy= false;
+        this.#startOfflineGame(difficulty);
+        return;
+      }
       this.showMessage(error.message, "error");
     }
     finally {
       this.soloBusy= false;
       this.render();
     }
+  }
+
+  //////         //////
+  ////// offline //////
+  //////         //////
+
+  /**
+   * Plays one of the puzzles kept on the device (see OfflineLevels).
+   */
+  #startOfflineGame(difficulty){
+    const level= this.offlineLevels.take(difficulty);
+    if (! level){
+      this.showMessage("You're offline and no puzzle is left on this device: reconnect to play.", "error");
+      this.render();
+      return;
+    }
+
+    this.#setSoloGame({
+      id: `offline-${Date.now()}`,
+      offline: true,
+      difficulty: level.difficulty,
+      puzzle: level.puzzle,
+      solution: level.solution,
+      hardestTechnique: level.hardestTechnique,
+      startedAt: Date.now(),
+      hintsUsed: 0,
+      ownerId: null,
+      status: "playing",
+      durationMs: null,
+    }, new SudokuGame(level.puzzle));
+
+    const left= this.offlineLevels.count();
+    const otherDifficulty= level.difficulty!== difficulty ? ` No ${difficulty} puzzle was left, here is a ${level.difficulty} one.` : "";
+    this.showMessage(`You're offline: playing a puzzle saved on this device (not ranked, ${left} left).${otherDifficulty}`);
+    if (navigator.onLine) this.#refillOfflineLevels();
+  }
+
+  #refillOfflineLevels(){
+    this.offlineLevels.refill().then(()=> this.render()).catch(()=> {});
+  }
+
+  #onConnectionChange(online){
+    this.online= online;
+    if (online){
+      this.#refillOfflineLevels();
+      // an online game finished while offline: send it now
+      if (this.solo?.pendingCompletion && this.solo.status=== "playing") this.#completeSoloGame();
+      this.showMessage("");
+    }
+    else{
+      this.showMessage("You're offline: you can keep playing solo.");
+    }
+    this.render();
   }
 
   #setSoloGame(info, game){
@@ -431,6 +522,9 @@ class App{
       this.#saveSoloGame();
       this.showMessage(`${error.message} Start a new game to keep playing.`, "error");
     }
+    else if (error instanceof ApiError && error.status=== 0){
+      this.showMessage("You're offline: this game was started online, it needs the server for that. Keep playing, or start a new game.", "error");
+    }
     else{
       this.showMessage(error.message, "error");
     }
@@ -439,6 +533,11 @@ class App{
 
   async #completeSoloGame(){
     const solo= this.solo;
+    if (solo.offline){
+      this.#completeOfflineGame();
+      return;
+    }
+
     this.soloBusy= true;
     try {
       const result= await api.complete(solo.id, solo.game.board());
@@ -448,6 +547,7 @@ class App{
       }
 
       solo.status= "won";
+      solo.pendingCompletion= false;
       solo.durationMs= result.durationMs;
       solo.game.readOnly= true;
       this.#saveSoloGame();
@@ -455,6 +555,12 @@ class App{
       this.#showVictory(result);
     }
     catch (error) {
+      if (error instanceof ApiError && error.status=== 0){
+        solo.pendingCompletion= true;
+        this.#saveSoloGame();
+        this.showMessage("Solved! You're offline: your time will be sent when you're back online.", "success");
+        return;
+      }
       this.#soloRequestFailed(error);
     }
     finally {
@@ -471,9 +577,11 @@ class App{
       el("p", {className: "big-number", text: formatDuration(result.durationMs)}),
       el("p", {text: `${capitalize(this.solo.difficulty)} sudoku solved${penalty}.`}),
       result.hardestTechnique ? el("p", {text: `Hardest technique needed: ${result.hardestTechnique}.`}) : null,
-      el("p", {className: "muted", text: result.ranked
-        ? `You are #${result.rank} on the ${this.solo.difficulty} leaderboard.`
-        : "Log in before starting a game to get on the leaderboard."}),
+      el("p", {className: "muted", text: result.offline
+        ? "Played offline: this game isn't ranked."
+        : result.ranked
+          ? `You are #${result.rank} on the ${this.solo.difficulty} leaderboard.`
+          : "Log in before starting a game to get on the leaderboard."}),
       el("div", {className: "modal-actions"},
         el("button", {className: "button", type: "button", text: "Leaderboard", onClick: ()=> {
           modal.hide();
@@ -488,10 +596,42 @@ class App{
     modal.show();
   }
 
+  #completeOfflineGame(){
+    const solo= this.solo;
+    if (! isSolved(solo.game.board(), solo.solution)){
+      this.showMessage("Every cell is filled but something is wrong: try a hint.", "error");
+      return;
+    }
+
+    const result= {
+      durationMs: Date.now() - solo.startedAt + solo.hintsUsed * HINT_PENALTY_MS,
+      hintsUsed: solo.hintsUsed,
+      hardestTechnique: solo.hardestTechnique,
+      offline: true,
+    };
+    solo.status= "won";
+    solo.durationMs= result.durationMs;
+    solo.game.readOnly= true;
+    this.#saveSoloGame();
+    this.showMessage(`Solved in ${formatDuration(result.durationMs)}!`, "success");
+    this.#showVictory(result);
+    this.render();
+  }
+
   async hint(){
     if (this.mode!== "solo" || ! this.canPlay()) return;
 
     const solo= this.solo;
+    if (solo.offline){
+      const hint= localHint(solo.game.board(), solo.solution);
+      if (! hint) return;
+      solo.hintsUsed++;
+      this.selectedIndex= hint.y*9 + hint.x;
+      this.showMessage(`Hint: row ${hint.y+1}, column ${hint.x+1} is a ${hint.value} (+30 s).`);
+      solo.game.applyHint(hint.y*9 + hint.x, hint.value);
+      return;
+    }
+
     this.soloBusy= true;
     try {
       const {x, y, value, hintsUsed}= await api.hint(solo.id, solo.game.board());
@@ -519,7 +659,7 @@ class App{
     const solo= this.solo;
     this.soloBusy= true;
     try {
-      const {solution}= await api.solution(solo.id);
+      const {solution}= solo.offline ? {solution: solo.solution} : await api.solution(solo.id);
       solo.status= "revealed";
       solo.game.reveal(solution);
       this.showMessage("Here is the solution: the cells you missed are highlighted.");
@@ -539,6 +679,10 @@ class App{
   //////        //////
 
   joinQueue(){
+    if (! navigator.onLine){
+      this.showMessage("Battles need an internet connection.", "error");
+      return;
+    }
     if (! this.user){
       this.accountDialog.show();
       return;
@@ -732,6 +876,7 @@ class App{
   render(){
     const game= this.currentGame();
     document.body.dataset.mode= this.mode;
+    this.offlineChip.hidden= this.online;
 
     this.soloTab.setAttribute("aria-selected", String(this.mode=== "solo"));
     this.battleTab.setAttribute("aria-selected", String(this.mode=== "battle"));
@@ -769,7 +914,7 @@ class App{
     if (this.mode=== "solo") return this.solo ? null : "Loading…";
 
     switch (this.battle.phase){
-      case "idle": return this.user ? "Find an opponent to start" : "Log in to battle";
+      case "idle": return ! this.online ? "Battles need an internet connection" : this.user ? "Find an opponent to start" : "Log in to battle";
       case "queue": return "Looking for an opponent…";
       case "countdown": return String(Math.max(1, Math.ceil((this.battle.startsAt - Date.now()) / 1000)));
       default: return null;
@@ -787,6 +932,7 @@ class App{
     );
 
     const badge= ! this.solo ? null
+      : this.solo.offline ? el("span", {className: "badge badge-muted", title: `${this.offlineLevels.count()} puzzles left on this device`, text: "Offline"})
       : this.solo.ownerId!== null ? el("span", {className: "badge", text: "Ranked"})
       : el("span", {className: "badge badge-muted", text: "Guest"});
 
@@ -813,7 +959,7 @@ class App{
     if (phase=== "idle"){
       return [
         el("span", {text: `Your elo: ${this.user.elo}`}),
-        el("button", {className: "button button-primary", type: "button", text: "Find opponent", onClick: ()=> this.joinQueue()}),
+        el("button", {className: "button button-primary", type: "button", text: "Find opponent", disabled: ! this.online, onClick: ()=> this.joinQueue()}),
       ];
     }
 
@@ -838,7 +984,12 @@ class App{
 
     return [
       el("div", {className: "versus"},
-        el("span", {className: "versus-names", text: `${this.user.username} (${this.battle.elo}) vs ${opponent.username} (${opponent.elo})${opponent.connected ? "" : " · disconnected"}`}),
+        el("span", {className: "versus-names"},
+          playerName(this.user.username, this.user.avatar, {size: 28}),
+          el("span", {text: ` (${this.battle.elo}) vs `}),
+          playerName(opponent.username, opponent.avatar, {size: 28}),
+          el("span", {text: ` (${opponent.elo})${opponent.connected ? "" : " · disconnected"}`}),
+        ),
         progressBar("You", {filled, total}),
         progressBar(opponent.username, opponent.progress),
       ),
