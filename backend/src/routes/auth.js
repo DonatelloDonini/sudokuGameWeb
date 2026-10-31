@@ -48,6 +48,9 @@ const authRouter= ({users, sessions})=> {
     if (! user || typeof password!== "string" || ! await verifyPassword(password, user.password_hash)){
       return res.status(401).json({error: "Wrong username or password."});
     }
+    if (user.banned_at!== null){
+      return res.status(403).json({error: `This account is suspended${user.ban_reason ? `: ${user.ban_reason}` : "."}`});
+    }
 
     logIn(res, user);
   });

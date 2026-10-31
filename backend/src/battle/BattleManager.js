@@ -190,6 +190,8 @@ class BattleManager{
           username: user.username,
           eloBefore: user.elo,
           board: copyBoard(puzzle),
+          /** every move, stored with the battle as evidence for the cheating reports */
+          moves: [],
           graceTimer: null,
         };
       }),
@@ -219,6 +221,7 @@ class BattleManager{
 
     const player= this._player(battle, userId);
     player.board[y][x]= value;
+    player.moves.push({atMs: this.now() - battle.startsAt, x, y, value});
 
     this._send(this._opponent(battle, userId).userId, {type: "opponent-progress", ...this._progress(battle, player)});
 
@@ -269,6 +272,11 @@ class BattleManager{
         player1.userId, player2.userId, player1.eloBefore, player2.eloBefore,
         winner.userId, change, reason, battle.startsAt, finishedAt, battle.hardestTechnique,
       );
+
+      const insertMove= this.db.prepare("INSERT INTO battle_moves (battle_id, user_id, at_ms, x, y, value) VALUES (?, ?, ?, ?, ?, ?)");
+      for (const player of battle.players){
+        for (const {atMs, x, y, value} of player.moves) insertMove.run(battle.id, player.userId, atMs, x, y, value);
+      }
     });
 
     for (const player of battle.players){
@@ -287,6 +295,36 @@ class BattleManager{
         hardestTechnique: battle.hardestTechnique,
       });
     }
+  }
+
+  //////            //////
+  ////// moderation //////
+  //////            //////
+
+  /**
+   * Removes a user from the battles (e.g. when banned): out of the queue, disconnected,
+   * and a running battle is lost at once.
+   */
+  kick(userId){
+    this.queue.delete(userId);
+
+    const battle= this.battlesByUser.get(userId);
+    if (battle) this._finish(battle, this._opponent(battle, userId).userId, "disconnect");
+
+    const connection= this.connections.get(userId);
+    this.connections.delete(userId);
+    connection?.close();
+  }
+
+  /**
+   * @returns {{connected: number, queued: number, battles: number}} What is happening right now, for the admin dashboard.
+   */
+  activity(){
+    return {
+      connected: this.connections.size,
+      queued: this.queue.size,
+      battles: new Set(this.battlesByUser.values()).size,
+    };
   }
 
   //////         //////

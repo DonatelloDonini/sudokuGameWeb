@@ -25,19 +25,20 @@ const levelPool= new LevelPool();
 levelPool.start();
 
 const db= openDatabase(DATABASE_PATH);
-const services= createServices(db, {secureCookies: SECURE_COOKIES, levelPool});
+const services= createServices(db, {secureCookies: SECURE_COOKIES, levelPool, databasePath: DATABASE_PATH});
 services.sessions.deleteExpired();
+
+const battleManager= new BattleManager({db, users: services.users, generate: services.levels.take});
+battleManager.start();
 
 const app= createApp({
   services,
   frontendDir: process.env.FRONTEND_DIR,
   publicApiRateLimit: PUBLIC_API_RATE_LIMIT,
   trustProxy: parseTrustProxy(process.env.TRUST_PROXY),
+  runtime: {battleManager, levelPool},
 });
 const server= http.createServer(app);
-
-const battleManager= new BattleManager({db, users: services.users, generate: services.levels.take});
-battleManager.start();
 const wss= attachBattleServer(server, {sessions: services.sessions, battleManager});
 
 server.listen(PORT, HOST, ()=> {

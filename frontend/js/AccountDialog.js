@@ -39,6 +39,7 @@ export default class AccountDialog{
         stat("Sudokus solved", user.gamesCompleted),
       ),
       el("div", {className: "modal-actions"},
+        user.isAdmin ? el("a", {className: "button", href: "admin.html", text: "Admin dashboard"}) : null,
         el("button", {className: "button", type: "button", text: "Log out", onClick: async ()=> {
           await api.logout().catch(()=> {});
           this.modal.hide();

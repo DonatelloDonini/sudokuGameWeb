@@ -116,10 +116,11 @@ class Games{
 
     const {better}= this.db.prepare(`
       SELECT COUNT(*) AS better FROM (
-        SELECT user_id, MIN(duration_ms) AS best
-        FROM games
-        WHERE status = 'completed' AND difficulty = ? AND user_id IS NOT NULL AND user_id != ?
-        GROUP BY user_id
+        SELECT g.user_id, MIN(g.duration_ms) AS best
+        FROM games g
+        JOIN users u ON u.id = g.user_id
+        WHERE g.status = 'completed' AND g.difficulty = ? AND g.user_id != ? AND u.banned_at IS NULL
+        GROUP BY g.user_id
       ) WHERE best < ?
     `).get(game.difficulty, game.user_id, durationMs);
 

@@ -171,7 +171,7 @@ describe("BattleManager", ()=> {
     assert.equal(stored.end_reason, "solved");
     assert.equal(stored.elo_change, 16);
     assert.deepEqual(users.toPublic(users.findById(alice.user.id)), {
-      id: alice.user.id, username: "alice", elo: 1216, battlesPlayed: 1, battlesWon: 1, battlesLost: 0, gamesCompleted: 0,
+      id: alice.user.id, username: "alice", elo: 1216, battlesPlayed: 1, battlesWon: 1, battlesLost: 0, gamesCompleted: 0, isAdmin: false,
     });
   });
 

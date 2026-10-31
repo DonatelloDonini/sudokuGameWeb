@@ -37,6 +37,22 @@ class Users{
     this.db.prepare("UPDATE users SET elo = ? WHERE id = ?").run(elo, id);
   }
 
+  setAdmin(id, isAdmin){
+    this.db.prepare("UPDATE users SET is_admin = ? WHERE id = ?").run(isAdmin ? 1 : 0, id);
+  }
+
+  /**
+   * Bans a user: they are logged out everywhere and can't log in, and they leave the leaderboards.
+   */
+  ban(id, reason){
+    this.db.prepare("UPDATE users SET banned_at = ?, ban_reason = ? WHERE id = ?").run(Date.now(), reason, id);
+    this.db.prepare("DELETE FROM sessions WHERE user_id = ?").run(id);
+  }
+
+  unban(id){
+    this.db.prepare("UPDATE users SET banned_at = NULL, ban_reason = NULL WHERE id = ?").run(id);
+  }
+
   /**
    * The user as shown to the client, with battle and single player stats.
    * @param {Object} user A users row.
@@ -63,6 +79,7 @@ class Users{
       battlesWon: battles.wins,
       battlesLost: battles.played - battles.wins,
       gamesCompleted,
+      isAdmin: user.is_admin=== 1,
     };
   }
 }

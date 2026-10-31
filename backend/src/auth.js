@@ -92,7 +92,7 @@ class Sessions{
 
   /**
    * @param {string|undefined} token
-   * @returns {Object|null} The users row the token belongs to, if the session is still valid.
+   * @returns {Object|null} The users row the token belongs to, if the session is still valid and the user isn't banned.
    */
   findUser(token){
     if (! token) return null;
@@ -102,7 +102,8 @@ class Sessions{
       .get(hashToken(token));
     if (! session || session.expires_at< Date.now()) return null;
 
-    return this.users.findById(session.user_id) ?? null;
+    const user= this.users.findById(session.user_id);
+    return user && user.banned_at=== null ? user : null;
   }
 
   /**

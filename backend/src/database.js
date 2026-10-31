@@ -50,6 +50,34 @@ const SCHEMA= `
   );
   CREATE INDEX IF NOT EXISTS battles_by_player1 ON battles(player1_id);
   CREATE INDEX IF NOT EXISTS battles_by_player2 ON battles(player2_id);
+
+  -- every number placed or erased during a battle, kept as evidence for the cheating reports
+  CREATE TABLE IF NOT EXISTS battle_moves (
+    battle_id TEXT    NOT NULL REFERENCES battles(id) ON DELETE CASCADE,
+    user_id   INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    at_ms     INTEGER NOT NULL, -- since the start of the battle
+    x         INTEGER NOT NULL,
+    y         INTEGER NOT NULL,
+    value     INTEGER           -- null when the number was erased
+  );
+  CREATE INDEX IF NOT EXISTS battle_moves_by_battle ON battle_moves(battle_id, user_id, at_ms);
+
+  -- players reporting other players they think are cheating
+  CREATE TABLE IF NOT EXISTS reports (
+    id              INTEGER PRIMARY KEY AUTOINCREMENT,
+    reporter_id     INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    reported_id     INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    battle_id       TEXT    REFERENCES battles(id) ON DELETE SET NULL,
+    reason          TEXT    NOT NULL CHECK (reason IN ('solver', 'impossible_time', 'disconnect_abuse', 'other')),
+    comment         TEXT    NOT NULL DEFAULT '',
+    status          TEXT    NOT NULL DEFAULT 'open' CHECK (status IN ('open', 'dismissed', 'actioned')),
+    created_at      INTEGER NOT NULL,
+    resolved_at     INTEGER,
+    resolved_by     INTEGER REFERENCES users(id) ON DELETE SET NULL,
+    resolution_note TEXT
+  );
+  CREATE INDEX IF NOT EXISTS reports_by_status ON reports(status, created_at);
+  CREATE INDEX IF NOT EXISTS reports_by_reported ON reports(reported_id);
 `;
 
 /**
@@ -61,6 +89,10 @@ const ADDED_COLUMNS= [
   ["games", "hardest_technique", "TEXT"],
   ["games", "score", "INTEGER"],
   ["battles", "hardest_technique", "TEXT"],
+  // moderation: admins see the dashboard, banned users can't log in and leave the leaderboards
+  ["users", "is_admin", "INTEGER NOT NULL DEFAULT 0"],
+  ["users", "banned_at", "INTEGER"],
+  ["users", "ban_reason", "TEXT"],
 ];
 
 const addMissingColumns= (db)=> {

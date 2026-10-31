@@ -1,0 +1,927 @@
+/*
+ * The admin dashboard: laid out like the OpenCV Editor's dashboard (a card sidebar of pages next to a card <main>),
+ * with fixed neutral surfaces instead of the game's random palette, so the charts and the statuses stay readable.
+ * The series colors are the validated categorical palette (dataviz skill), stepped for each mode.
+ */
+:root{
+  color-scheme: light;
+  --bg: #f2f1ee;
+  --surface: #fcfcfb;
+  --surface-2: #efeeea;
+  --surface-3: #e6e5e0;
+  --border: #dddcd6;
+  --text: #0b0b0b;
+  --text-2: #52514e;
+  --accent: #2a78d6;
+  --on-accent: #ffffff;
+  --danger: #c62828;
+  --on-danger: #ffffff;
+  --warning: #9a6200;
+  --grid: #e3e2dd;
+  --series-1: #2a78d6;
+  --series-2: #eb6834;
+  --series-3: #1baf7a;
+  --shadow: 0 1px 2px rgb(0 0 0 / 6%), 0 4px 12px rgb(0 0 0 / 6%);
+  --radius: 1rem;
+  --mono: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+}
+
+@media (prefers-color-scheme: dark){
+  :root{
+    color-scheme: dark;
+    --bg: #121211;
+    --surface: #1a1a19;
+    --surface-2: #232321;
+    --surface-3: #2d2d2a;
+    --border: #34342f;
+    --text: #f0efec;
+    --text-2: #c3c2b7;
+    --accent: #3987e5;
+    --on-accent: #0b0b0b;
+    --danger: #ff8a80;
+    --on-danger: #0b0b0b;
+    --warning: #f0b44c;
+    --grid: #2f2f2c;
+    --series-1: #3987e5;
+    --series-2: #d95926;
+    --series-3: #199e70;
+    --shadow: 0 1px 2px rgb(0 0 0 / 40%);
+  }
+}
+
+*,
+*::before,
+*::after{
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+[hidden]{
+  display: none !important;
+}
+
+body{
+  min-height: 100dvh;
+  background-color: var(--bg);
+  color: var(--text);
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  line-height: 1.45;
+}
+
+button,
+input,
+select,
+textarea{
+  font: inherit;
+  color: inherit;
+}
+
+button{
+  cursor: pointer;
+}
+
+button:disabled{
+  cursor: default;
+  opacity: .45;
+}
+
+:focus-visible{
+  outline: 3px solid var(--accent);
+  outline-offset: 2px;
+}
+
+a{
+  color: inherit;
+}
+
+.icon{
+  width: 1.25rem;
+  height: 1.25rem;
+  fill: currentColor;
+  flex-shrink: 0;
+}
+
+.muted{
+  color: var(--text-2);
+}
+
+.small{
+  font-size: .85rem;
+}
+
+.errorText{
+  color: var(--danger);
+}
+
+.errorText:empty{
+  display: none;
+}
+
+.visuallyHidden{
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+/* ---------- layout ---------- */
+
+#wrapper{
+  display: flex;
+  gap: 1rem;
+  height: 100dvh;
+  padding: 1rem;
+}
+
+aside#dashboardSidebar{
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  min-width: 128px;
+  max-width: 240px;
+  height: 100%;
+  padding: 1rem;
+  border-radius: var(--radius);
+  background-color: var(--surface);
+  box-shadow: var(--shadow);
+}
+
+/* the pages take the height left by the profile box, and scroll when they don't fit */
+#dashboardOptions{
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: .15rem;
+}
+
+dashboard-option{
+  display: flex;
+  align-items: center;
+  gap: .75rem;
+  padding: .75rem 1rem;
+  border-radius: .6rem;
+  cursor: pointer;
+  user-select: none;
+}
+
+dashboard-option .optionLabel{
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+dashboard-option:hover{
+  background-color: var(--surface-2);
+}
+
+dashboard-option.active{
+  background-color: var(--surface-3);
+  font-weight: 650;
+}
+
+#profileMenu{
+  position: relative;
+  padding-top: 1rem;
+  margin-top: auto;
+  border-top: 1px solid var(--border);
+}
+
+#profileBox{
+  display: flex;
+  align-items: center;
+  gap: .6rem;
+  width: 100%;
+  height: 56px;
+  padding: 0 .6rem;
+  overflow: hidden;
+  border: none;
+  border-radius: .6rem;
+  background-color: var(--surface-2);
+  text-align: left;
+}
+
+#profileBox:hover,
+#profileBox[aria-expanded="true"]{
+  background-color: var(--surface-3);
+}
+
+.avatar{
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  background-color: var(--accent);
+  color: var(--on-accent);
+  font-weight: 700;
+}
+
+.profileName{
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.profileMenuItems{
+  position: absolute;
+  bottom: calc(100% + .25rem);
+  left: 0;
+  right: 0;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  padding: .35rem;
+  border: 1px solid var(--border);
+  border-radius: .6rem;
+  background-color: var(--surface);
+  box-shadow: var(--shadow);
+}
+
+.profileMenuItems > *{
+  padding: .55rem .75rem;
+  border: none;
+  border-radius: .4rem;
+  background: none;
+  text-align: left;
+  text-decoration: none;
+}
+
+.profileMenuItems > *:hover{
+  background-color: var(--surface-2);
+}
+
+main#dashboardMain{
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  padding: 1.25rem;
+  border-radius: var(--radius);
+  background-color: var(--surface);
+  box-shadow: var(--shadow);
+}
+
+.pageTitle{
+  font-size: 1.5rem;
+}
+
+.pageHeader{
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: .75rem 1rem;
+}
+
+.pageContent{
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.accessDenied{
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: .75rem;
+  margin: auto;
+  max-width: 28rem;
+}
+
+/* ---------- desktop: the sidebar collapses to the icons ---------- */
+
+.mobileOnly{
+  display: none !important;
+}
+
+@media (min-width: 769px){
+  #sidebarToggle{
+    align-self: flex-start;
+    display: flex;
+    margin-bottom: .5rem;
+    padding: .45rem;
+    border: none;
+    border-radius: .5rem;
+    background: none;
+  }
+
+  #sidebarToggle:hover{
+    background-color: var(--surface-2);
+  }
+
+  aside#dashboardSidebar.collapsed{
+    min-width: calc(56px + 2rem);
+    max-width: calc(56px + 2rem);
+  }
+
+  aside.collapsed #sidebarToggle .icon{
+    transform: scaleX(-1);
+  }
+
+  aside.collapsed dashboard-option{
+    padding-left: calc(50% - .625rem);
+  }
+
+  aside.collapsed .optionLabel,
+  aside.collapsed .profileName{
+    opacity: 0;
+  }
+
+  aside.animated{
+    transition: min-width 200ms, max-width 200ms;
+  }
+
+  aside.animated .optionLabel,
+  aside.animated .profileName{
+    transition: opacity 150ms;
+  }
+
+  aside.animated #sidebarToggle .icon{
+    transition: transform 200ms;
+  }
+}
+
+/* ---------- mobile: the pages are an accordion above the page ---------- */
+
+@media (max-width: 768px){
+  .desktopOnly{
+    display: none !important;
+  }
+
+  .mobileOnly{
+    display: flex !important;
+  }
+
+  #wrapper{
+    flex-direction: column;
+    height: auto;
+    min-height: 100dvh;
+    padding: .75rem;
+    gap: .75rem;
+  }
+
+  aside#dashboardSidebar{
+    max-width: none;
+    height: auto;
+    padding: .5rem;
+  }
+
+  #mobileAccordionMenu{
+    align-items: center;
+    gap: .5rem;
+    padding: .5rem;
+    border: none;
+    background: none;
+    font-weight: 650;
+  }
+
+  #mobileAccordionMenu .icon{
+    transition: transform 150ms;
+  }
+
+  #mobileAccordionMenu[aria-expanded="true"] .icon{
+    transform: rotate(90deg);
+  }
+
+  #dashboardOptions{
+    display: none;
+    max-height: 50vh;
+  }
+
+  aside.pagesOpen #dashboardOptions{
+    display: flex;
+  }
+
+  #profileMenu{
+    display: none;
+  }
+
+  aside.pagesOpen #profileMenu{
+    display: block;
+  }
+
+  main#dashboardMain{
+    height: auto;
+    overflow: visible;
+    padding: 1rem;
+  }
+}
+
+/* ---------- panels, tiles, controls ---------- */
+
+/* flex items grow to fit their content by default: the wide tables would push the page sideways instead of scrolling */
+.dashboardPanel,
+.dataTable,
+.tableScroll,
+.lineChart{
+  min-width: 0;
+}
+
+.dashboardPanel{
+  display: flex;
+  flex-direction: column;
+  gap: .9rem;
+  padding: 1rem 1.1rem;
+  border: 1px solid var(--border);
+  border-radius: .8rem;
+  background-color: var(--surface);
+}
+
+.panelHeader{
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: .5rem 1rem;
+}
+
+.panelHeader h2{
+  font-size: 1.1rem;
+}
+
+.panelActions{
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: .5rem;
+}
+
+.panelSubtitle{
+  font-size: 1rem;
+}
+
+.tiles{
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr));
+  gap: .75rem;
+}
+
+.statTile{
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: .1rem;
+  padding: .9rem 1rem;
+  border: 1px solid var(--border);
+  border-radius: .7rem;
+  background-color: var(--surface-2);
+  text-align: left;
+}
+
+.statTile.clickable:hover{
+  background-color: var(--surface-3);
+}
+
+.tileValue{
+  font-family: var(--mono);
+  font-size: 1.75rem;
+  font-weight: 700;
+  line-height: 1.2;
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+
+.tileLabel{
+  font-weight: 600;
+}
+
+.tileHint{
+  color: var(--text-2);
+  font-size: .85rem;
+}
+
+.button{
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: .35rem;
+  min-height: 2.25rem;
+  padding: .35rem .8rem;
+  border: 1px solid var(--border);
+  border-radius: .5rem;
+  background-color: var(--surface-2);
+  font-weight: 600;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.button:hover:not(:disabled){
+  background-color: var(--surface-3);
+}
+
+.button-primary{
+  border-color: var(--accent);
+  background-color: var(--accent);
+  color: var(--on-accent);
+}
+
+.button-primary:hover:not(:disabled){
+  background-color: var(--accent);
+  filter: brightness(1.08);
+}
+
+.button-danger{
+  border-color: var(--danger);
+  background-color: var(--danger);
+  color: var(--on-danger);
+}
+
+.button-danger:hover:not(:disabled){
+  background-color: var(--danger);
+  filter: brightness(1.08);
+}
+
+.buttonRow{
+  display: flex;
+  flex-wrap: wrap;
+  gap: .5rem;
+}
+
+.input{
+  width: 100%;
+  min-height: 2.25rem;
+  padding: .4rem .7rem;
+  border: 1px solid var(--border);
+  border-radius: .5rem;
+  background-color: var(--surface);
+}
+
+input.input{
+  max-width: 18rem;
+}
+
+textarea.input{
+  resize: vertical;
+}
+
+.segmented{
+  display: inline-flex;
+  flex-wrap: wrap;
+  padding: .2rem;
+  border-radius: .6rem;
+  background-color: var(--surface-2);
+}
+
+.segmented button{
+  padding: .3rem .75rem;
+  border: none;
+  border-radius: .45rem;
+  background: none;
+  font-weight: 600;
+  color: var(--text-2);
+}
+
+.segmented button[aria-checked="true"]{
+  background-color: var(--surface);
+  color: var(--text);
+  box-shadow: var(--shadow);
+}
+
+.badge{
+  display: inline-block;
+  padding: .05rem .5rem;
+  border-radius: 1rem;
+  font-size: .78rem;
+  font-weight: 650;
+  white-space: nowrap;
+  background-color: var(--surface-3);
+  color: var(--text);
+}
+
+.badge-accent{
+  background-color: var(--accent);
+  color: var(--on-accent);
+}
+
+.badge-danger{
+  background-color: var(--danger);
+  color: var(--on-danger);
+}
+
+.cellWithBadge{
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: .35rem;
+}
+
+.definitions{
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: .35rem 1rem;
+}
+
+.definitions dt{
+  color: var(--text-2);
+}
+
+.definitions dd{
+  overflow-wrap: anywhere;
+}
+
+.signals{
+  display: flex;
+  flex-direction: column;
+  gap: .35rem;
+  list-style: none;
+}
+
+.signals li{
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+  font-weight: 600;
+}
+
+.signals .icon{
+  color: var(--warning);
+}
+
+/* ---------- tables ---------- */
+
+.dataTable{
+  display: flex;
+  flex-direction: column;
+  gap: .6rem;
+}
+
+.tableScroll{
+  /* positioned, so the hidden caption (absolutely positioned) scrolls with the table instead of widening the page */
+  position: relative;
+  overflow-x: auto;
+}
+
+.dataTable table,
+.chartTable table{
+  width: 100%;
+  border-collapse: collapse;
+  font-variant-numeric: tabular-nums;
+}
+
+.dataTable th,
+.dataTable td,
+.chartTable th,
+.chartTable td{
+  padding: .5rem .6rem;
+  border-bottom: 1px solid var(--border);
+  text-align: left;
+  vertical-align: middle;
+}
+
+/* the tables scroll sideways on small screens instead of squeezing their cells */
+.dataTable th,
+.dataTable td{
+  white-space: nowrap;
+}
+
+.dataTable .numeric,
+.chartTable .numeric{
+  text-align: right;
+}
+
+.sortButton{
+  border: none;
+  background: none;
+  font-weight: 650;
+  color: var(--text-2);
+}
+
+th[aria-sort="ascending"] .sortButton::after{
+  content: " ▲";
+}
+
+th[aria-sort="descending"] .sortButton::after{
+  content: " ▼";
+}
+
+.dataTable tr.clickable{
+  cursor: pointer;
+}
+
+.dataTable tbody tr:hover{
+  background-color: var(--surface-2);
+}
+
+.emptyRow{
+  color: var(--text-2);
+  text-align: center !important;
+  padding: 1.25rem !important;
+}
+
+.actionsColumn{
+  width: 1%;
+}
+
+.rowActions{
+  display: flex;
+  gap: .4rem;
+  justify-content: flex-end;
+}
+
+.tableFooter{
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: .5rem;
+}
+
+.pager{
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+}
+
+/* ---------- charts ---------- */
+
+.lineChart{
+  display: flex;
+  flex-direction: column;
+  gap: .5rem;
+}
+
+.chartLegend{
+  display: flex;
+  flex-wrap: wrap;
+  gap: .4rem 1.1rem;
+  list-style: none;
+  color: var(--text-2);
+}
+
+.chartLegend li{
+  display: flex;
+  align-items: center;
+  gap: .4rem;
+}
+
+.swatch{
+  display: inline-block;
+  width: .85rem;
+  height: .85rem;
+  border-radius: 3px;
+  flex-shrink: 0;
+}
+
+.chartFrame{
+  position: relative;
+}
+
+.chartArea{
+  width: 100%;
+}
+
+.chartArea svg{
+  display: block;
+  overflow: visible;
+}
+
+.gridLine{
+  stroke: var(--grid);
+  stroke-width: 1;
+}
+
+.axisLabel{
+  fill: var(--text-2);
+  font-size: 12px;
+}
+
+.directLabel{
+  fill: var(--text);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.seriesLine{
+  fill: none;
+  stroke-width: 2;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+
+/* a ring of the surface around the markers, to separate them from the lines they sit on */
+.seriesMarker,
+.hoverMarker{
+  stroke: var(--surface);
+  stroke-width: 2;
+}
+
+.crosshair{
+  stroke: var(--text-2);
+  stroke-width: 1;
+  stroke-dasharray: 3 3;
+}
+
+.chartOverlay{
+  fill: transparent;
+  cursor: crosshair;
+}
+
+.chartOverlay:focus-visible{
+  outline: none;
+  stroke: var(--accent);
+  stroke-width: 2;
+}
+
+.chartTooltip{
+  position: absolute;
+  top: .5rem;
+  z-index: 5;
+  min-width: 10rem;
+  padding: .5rem .65rem;
+  border: 1px solid var(--border);
+  border-radius: .5rem;
+  background-color: var(--surface);
+  box-shadow: var(--shadow);
+  pointer-events: none;
+  font-size: .88rem;
+}
+
+.tooltipTitle{
+  margin-bottom: .25rem;
+  font-weight: 650;
+}
+
+.tooltipRow{
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: .45rem;
+}
+
+.tooltipRow strong{
+  font-variant-numeric: tabular-nums;
+}
+
+.chartTools{
+  display: flex;
+  justify-content: flex-end;
+}
+
+.chartTable{
+  position: relative;
+  max-height: 20rem;
+  overflow-y: auto;
+}
+
+/* ---------- modals (js/Modal.js) ---------- */
+
+.modal-mask{
+  position: fixed;
+  inset: 0;
+  z-index: 300;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  background-color: rgb(0 0 0 / 45%);
+}
+
+.modal-panel{
+  position: relative;
+  width: 100%;
+  max-width: 30rem;
+  max-height: 85dvh;
+  overflow-y: auto;
+  padding: 1.25rem 1.5rem;
+  border-radius: .8rem;
+  background-color: var(--surface);
+  box-shadow: var(--shadow);
+}
+
+.modal-title{
+  margin-bottom: .75rem;
+  padding-right: 2rem;
+  font-size: 1.2rem;
+}
+
+.modal-close{
+  position: absolute;
+  top: .6rem;
+  right: .6rem;
+  width: 2rem;
+  height: 2rem;
+  border: none;
+  border-radius: 50%;
+  background: none;
+}
+
+.modal-body{
+  display: flex;
+  flex-direction: column;
+  gap: .75rem;
+}
+
+.modal-actions{
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: .5rem;
+}

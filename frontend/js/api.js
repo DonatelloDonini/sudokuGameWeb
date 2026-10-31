@@ -18,7 +18,7 @@ export class ApiError extends Error{
  * @returns {Promise<Object>} The JSON answer.
  * @throws {ApiError}
  */
-const request= async (path, body)=> {
+export const request= async (path, body)=> {
   const options= body=== undefined ? {} : {
     method: "POST",
     headers: {"Content-Type": "application/json"},
@@ -52,4 +52,7 @@ export const api= {
 
   eloLeaderboard: ()=> request("/leaderboard/elo"),
   timesLeaderboard: (difficulty)=> request(`/leaderboard/times/${difficulty}`),
+
+  reportReasons: ()=> request("/reports/reasons"),
+  report: ({username, battleId= null, reason, comment= ""})=> request("/reports", {username, battleId, reason, comment}),
 };

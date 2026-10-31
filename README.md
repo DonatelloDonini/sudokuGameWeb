@@ -12,6 +12,9 @@
 - **A new color palette every visit**, generated like in the [minesweeper game](https://github.com/DonatelloDonini/minesweeper-javascript): five harmonious colors mapped to the page theme, reversed when the browser is in dark mode.
 - **In-game rules**: the `?` button in the top right corner explains how to play.
 - **A public API for developers** (see [Public API](#public-api-for-developers)): graded puzzles, a solver, a difficulty grader and step by step hints for other sudoku games, documented at `/api.html`.
+- **Cheating reports**: players can report an opponent from the end of a battle, or any player from the leaderboard.
+- **Admin dashboard** (see [Admin dashboard](#admin-dashboard)), built like the OpenCV Editor's: stats, reports with the evidence, users (ban, admin rights), battles, solo games and the state of the server.
+- **Tested end to end** (see [Tests](#tests)): backend, frontend logic and the whole game in a real browser, on desktop and phone, on every push.
 
 ## Project structure
 
@@ -29,14 +32,24 @@ backend/                 Node.js server (Express + ws + SQLite)
   src/routes/publicApi.js  the public API for other developers (/api/v1)
   src/puzzleFormat.js      array and string puzzle formats
   src/rateLimit.js         per IP rate limiting
+  src/reports.js           cheating reports and their evidence
+  src/admin.js             the data of the admin dashboard (routes/admin.js)
+  src/cli.js               command line: make-admin, remove-admin, unban
   src/sudoku/              level generation logic (SudokuGrid, Possibilities, SudokuSolver, HumanSolver, ...)
-  test/                    tests (node:test)
+  test/                    backend tests (node:test)
 frontend/                static page served by the backend (ES modules, no build step)
   api.html                 public API documentation
   js/main.js               the page: solo, battle, account, leaderboard
   js/SudokuGame.js         game state: numbers, notes, undo, conflicts
   js/SudokuBoard.js        the grid on screen
   js/Palette.js            random color palette (from the minesweeper game)
+  js/ReportDialog.js       reporting a player
+  admin.html, admin.css    the admin dashboard
+  js/admin/                its pages (js/admin/pages/), side menu, tables and charts
+tests/
+  frontend/                unit tests of the frontend logic (node:test)
+  e2e/                     browser tests of the whole game (Playwright)
+.github/workflows/         runs all the tests and builds the Docker image on every push
 Dockerfile
 docker-compose.yml
 ```
@@ -83,6 +96,43 @@ npm test
 
 The frontend must be opened through the backend (http://localhost:3000), not as a file or through a separate static server, because it talks to the API.
 
+## Admin dashboard
+
+`/admin.html` is for admins only. Make the first admin from the command line once their account exists (afterwards, admins can make other admins from the Users page):
+
+```sh
+# with Docker
+docker compose exec sudoku node backend/src/cli.js make-admin <username>
+# locally
+cd backend && npm run admin -- make-admin <username>
+```
+
+The same tool has `remove-admin` and `unban`. The dashboard has, in its side menu (collapsible, remembered by the browser, with `admin.html#<page>` links):
+
+- **Stats**: players, activity today, games, battles and open reports; games, battles and new players per day (week, month, year, all time); solo games per difficulty.
+- **Reports**: the cheating reports. A report shows the reported player's history (elo, battles, best solo times next to everybody's average, previous reports) and, for a battle, how both players played it from the recorded moves: correct cells, mistakes, corrections, typical time per number, fastest 10 numbers, a chart of the correct cells over time, and warning signs (no mistake at all, less than 1.5 s per number, 10 numbers in less than 6 s, very regular rhythm). The admin dismisses the report or bans the player.
+- **Users**: search, ban (with a reason shown to the player) and unban, give or remove admin rights.
+- **Battles** and **Solo games**: the last 200 of each.
+- **System**: uptime, memory, database size, players connected, queued and battling, levels ready in the generator, refreshed every 5 seconds.
+
+A banned player is logged out everywhere, loses any battle they're in, can't log in, and leaves the leaderboards.
+
+## Tests
+
+```sh
+npm install --prefix backend && npm install   # once
+npx playwright install chromium               # once, the browser of the browser tests
+
+npm test                # everything
+npm run test:backend    # the server: sudoku logic, solver, generator, API, battles, websocket, reports, admin
+npm run test:frontend   # the frontend logic: game state, notes, undo, API client, battle connection
+npm run test:e2e        # the whole game in Chromium, desktop and phone (Pixel 7)
+```
+
+The browser tests start the real server on a throwaway database (`.e2e-data/`) and play like a person: solo games with conflicts, undo, notes, hints and the solution, accounts and leaderboards, two-player battles with a reload in the middle, reports, and the admin dashboard banning a cheater. When one fails, `npm run test:e2e:report` (or the `playwright-report` artifact on GitHub) shows a screenshot and a trace of every step.
+
+GitHub Actions runs all the tests and builds and starts the Docker image on every push and pull request (`.github/workflows/tests.yml`).
+
 ## Public API for developers
 
 Other sudoku games can use this server instead of writing their own generator. The full documentation, with examples and a "try it" form, is served at `/api.html`.
@@ -116,6 +166,9 @@ These endpoints are used by the game itself. All bodies are JSON. The session is
 | `POST` | `/api/games/:id/complete` | `{board}`: `{solved: false}`, or `{solved: true, durationMs, rank, ...}` |
 | `GET`  | `/api/leaderboard/elo` | Battle ranking |
 | `GET`  | `/api/leaderboard/times/:difficulty` | Best time of each player |
+| `GET`  | `/api/reports/reasons` | The reasons a player can be reported for |
+| `POST` | `/api/reports` | `{username, battleId?, reason, comment?}`: reports a player (logged in; 10 a day at most) |
+| `GET`/`POST` | `/api/admin/...` | The admin dashboard: `stats`, `system`, `battles`, `games`, `users` (+ `ban`, `unban`, `admin`), `reports` (+ `resolve`); admins only |
 | `GET`  | `/api/health` | `{"status": "ok"}`, used by the Docker health check |
 
 ### Battle websocket (`/ws`, logged in users only)

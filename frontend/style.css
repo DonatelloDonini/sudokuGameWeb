@@ -731,6 +731,71 @@ body[data-mode="battle"] .game-layout{
   font-weight: 700;
 }
 
+/* ---------- reports ---------- */
+
+a.button{
+  text-decoration: none;
+}
+
+.icon-button{
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  border: none;
+  border-radius: 50%;
+  background: none;
+  opacity: .7;
+}
+
+.icon-button:hover,
+.icon-button:focus-visible{
+  opacity: 1;
+  background-color: var(--shadow);
+}
+
+.report-form{
+  display: flex;
+  flex-direction: column;
+  gap: .75rem;
+}
+
+.report-form fieldset{
+  display: flex;
+  flex-direction: column;
+  gap: .35rem;
+  border: none;
+}
+
+.report-form legend{
+  margin-bottom: .35rem;
+  font-weight: 600;
+}
+
+.report-form .radio{
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+}
+
+.report-form label:not(.radio){
+  display: flex;
+  flex-direction: column;
+  gap: .25rem;
+  font-weight: 600;
+}
+
+.report-form textarea{
+  padding: .55rem .7rem;
+  border: 2px solid var(--shadow);
+  border-radius: .5rem;
+  background-color: var(--background);
+  font: inherit;
+  font-weight: 400;
+  resize: vertical;
+}
+
 /* ---------- footer ---------- */
 
 .page-footer{

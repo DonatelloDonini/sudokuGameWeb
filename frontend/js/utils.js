@@ -44,6 +44,19 @@ export const el= (tag, attributes= {}, ...children)=> {
 };
 
 /**
+ * Replaces the children of an element, skipping the null and undefined ones (replaceChildren would show them as text).
+ *
+ * @param {HTMLElement} element
+ * @param {...(Node|string|null|undefined)} children
+ *
+ * @returns {HTMLElement} The element.
+ */
+export const fill= (element, ...children)=> {
+  element.replaceChildren(...children.filter(child=> child!== null && child!== undefined));
+  return element;
+};
+
+/**
  * Builds an inline SVG icon from path data (24x24 viewBox, drawn with the current text color).
  *
  * @param {string} pathData The "d" attribute of the icon's path.

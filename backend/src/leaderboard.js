@@ -13,6 +13,7 @@ const eloLeaderboard= (db, limit= DEFAULT_LIMIT)=> db.prepare(`
     COALESCE(SUM(b.winner_id = u.id), 0) AS wins
   FROM users u
   JOIN battles b ON b.player1_id = u.id OR b.player2_id = u.id
+  WHERE u.banned_at IS NULL
   GROUP BY u.id
   ORDER BY u.elo DESC, wins DESC, u.username
   LIMIT ?
@@ -31,7 +32,7 @@ const timesLeaderboard= (db, difficulty, limit= DEFAULT_LIMIT)=> db.prepare(`
     COUNT(*)           AS completed
   FROM games g
   JOIN users u ON u.id = g.user_id
-  WHERE g.status = 'completed' AND g.difficulty = ?
+  WHERE g.status = 'completed' AND g.difficulty = ? AND u.banned_at IS NULL
   GROUP BY u.id
   ORDER BY bestMs, u.username
   LIMIT ?

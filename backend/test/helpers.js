@@ -10,8 +10,8 @@ const {attachBattleServer}= require("../src/battle/websocket");
 const startServer= async (battleOptions= {}, appOptions= {})=> {
   const db= openDatabase(":memory:");
   const services= createServices(db);
-  const server= http.createServer(createApp({services, publicApiRateLimit: 1000, ...appOptions}));
   const battleManager= new BattleManager({db, users: services.users, countdownMs: 0, ...battleOptions});
+  const server= http.createServer(createApp({services, publicApiRateLimit: 1000, runtime: {battleManager}, ...appOptions}));
   const wss= attachBattleServer(server, {sessions: services.sessions, battleManager});
 
   await new Promise(resolve=> server.listen(0, "127.0.0.1", resolve));

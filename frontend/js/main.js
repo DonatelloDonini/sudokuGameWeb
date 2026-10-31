@@ -7,6 +7,7 @@ import RulesButton from "./RulesButton.js";
 import Modal from "./Modal.js";
 import { api, ApiError } from "./api.js";
 import { applyRandomPalette } from "./Palette.js";
+import { openReportDialog } from "./ReportDialog.js";
 import { el, icon, ICONS, formatDuration, loadFromStorage, saveToStorage } from "./utils.js";
 
 const DIFFICULTIES= ["easy", "medium", "hard", "expert"];
@@ -118,7 +119,7 @@ class App{
     this.placeholderGame= new SudokuGame(Array.from({length: 9}, ()=> new Array(9).fill(null)), {readOnly: true});
 
     this.board= new SudokuBoard();
-    this.leaderboard= new Leaderboard(DIFFICULTIES, ()=> this.user?.username ?? null);
+    this.leaderboard= new Leaderboard(DIFFICULTIES, ()=> this.user?.username ?? null, (username)=> openReportDialog({username}));
     this.accountDialog= new AccountDialog({
       getUser: ()=> this.user,
       onUserChange: (user)=> this.setUser(user),
@@ -676,6 +677,9 @@ class App{
       el("p", {className: "big-number", text: `${result.eloChange> 0 ? "+" : ""}${result.eloChange}`}),
       el("p", {className: "muted", text: `Your elo is now ${result.elo}.`}),
       el("div", {className: "modal-actions"},
+        this.battle.opponent ? el("button", {className: "button", type: "button", text: "Report opponent", onClick: ()=> {
+          openReportDialog({username: this.battle.opponent.username, battleId: this.battle.battleId});
+        }}, icon(ICONS.flag)) : null,
         el("button", {className: "button", type: "button", text: "Close", onClick: ()=> modal.hide()}),
         el("button", {className: "button button-primary", type: "button", text: "Find another opponent", onClick: ()=> {
           modal.hide();
