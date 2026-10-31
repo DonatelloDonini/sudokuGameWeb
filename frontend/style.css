@@ -731,6 +731,118 @@ body[data-mode="battle"] .game-layout{
   font-weight: 700;
 }
 
+/* ---------- footer ---------- */
+
+.page-footer{
+  padding: .75rem 1rem 1rem;
+  text-align: center;
+  font-size: .9rem;
+}
+
+.page-footer a,
+.docs a{
+  color: inherit;
+  text-underline-offset: 3px;
+}
+
+/* ---------- API documentation ---------- */
+
+.docs{
+  width: 100%;
+  max-width: 52rem;
+  margin: 0 auto;
+  padding: 1.25rem 1rem 3rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  line-height: 1.6;
+}
+
+.docs .lead{
+  font-size: 1.1rem;
+}
+
+.docs-nav{
+  display: flex;
+  flex-wrap: wrap;
+  gap: .4rem .9rem;
+  padding: .75rem 1rem;
+  border-radius: .75rem;
+  background-color: var(--shadow);
+}
+
+.docs section{
+  display: flex;
+  flex-direction: column;
+  gap: .6rem;
+}
+
+.docs h2{
+  padding-bottom: .25rem;
+  border-bottom: 2px solid var(--shadow);
+  font-family: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+  font-size: 1.25rem;
+}
+
+.docs .method{
+  padding: .05rem .45rem;
+  margin-right: .3rem;
+  border-radius: .3rem;
+  background-color: var(--detail);
+  color: var(--background);
+  font-size: .9rem;
+}
+
+.docs ul{
+  padding-left: 1.25rem;
+}
+
+.docs code,
+.docs pre{
+  font-family: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+  font-size: .88em;
+}
+
+.docs code{
+  padding: .05rem .3rem;
+  border-radius: .3rem;
+  background-color: var(--shadow);
+  overflow-wrap: anywhere;
+}
+
+.docs pre{
+  padding: .8rem 1rem;
+  border-radius: .5rem;
+  background-color: var(--shadow);
+  overflow-x: auto;
+  line-height: 1.45;
+}
+
+.docs table{
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.docs th,
+.docs td{
+  padding: .4rem .5rem;
+  text-align: left;
+  vertical-align: top;
+  border-bottom: 1px solid var(--shadow);
+}
+
+.try-form{
+  display: flex;
+  flex-wrap: wrap;
+  gap: .5rem;
+}
+
+#try-output{
+  max-height: 24rem;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
 /* ---------- small screens ---------- */
 
 @media (max-width: 480px){

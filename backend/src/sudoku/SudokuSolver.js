@@ -17,13 +17,15 @@ const countBits= (mask)=> {
 };
 
 /**
- * Counts the solutions of a sudoku, stopping as soon as `limit` solutions are found.
+ * Searches the solutions of a sudoku, stopping as soon as `limit` solutions are found.
  *
  * @param {list[list[number|null]]} matrix The sudoku, indexed as matrix[y][x], empty cells are null.
  * @param {number} limit The number of solutions after which the search stops.
- * @returns {number} The number of solutions found, never more than `limit`. 0 if the givens already break the rules.
+ * @returns {{count: number, firstSolution: list[list[number]]|null}} How many solutions were found (never more than
+ *          `limit`, 0 if the givens already break the rules) and the first one.
  */
-const countSolutions= (matrix, limit= 2)=> {
+const searchSolutions= (matrix, limit)=> {
+  const values= matrix.map(row=> [...row]);
   const rows= new Array(9).fill(0);
   const columns= new Array(9).fill(0);
   const quadrants= new Array(9).fill(0);
@@ -31,7 +33,7 @@ const countSolutions= (matrix, limit= 2)=> {
 
   for (let y= 0; y<9; y++){
     for (let x= 0; x<9; x++){
-      const value= matrix[y][x];
+      const value= values[y][x];
       if (value=== null){
         emptyCells.push([x, y]);
         continue;
@@ -39,7 +41,7 @@ const countSolutions= (matrix, limit= 2)=> {
 
       const bit= 1 << value;
       const q= quadrantIndex(x, y);
-      if ((rows[y] | columns[x] | quadrants[q]) & bit) return 0;
+      if ((rows[y] | columns[x] | quadrants[q]) & bit) return {count: 0, firstSolution: null};
 
       rows[y]|= bit;
       columns[x]|= bit;
@@ -48,6 +50,7 @@ const countSolutions= (matrix, limit= 2)=> {
   }
 
   let solutions= 0;
+  let firstSolution= null;
 
   const search= ()=> {
     // pick the empty cell with the fewest candidates
@@ -71,6 +74,7 @@ const countSolutions= (matrix, limit= 2)=> {
 
     if (bestIndex=== -1){
       solutions++;
+      if (solutions=== 1) firstSolution= values.map(row=> [...row]);
       return;
     }
 
@@ -85,7 +89,9 @@ const countSolutions= (matrix, limit= 2)=> {
       rows[y]|= bit;
       columns[x]|= bit;
       quadrants[q]|= bit;
+      values[y][x]= digit;
       search();
+      values[y][x]= null;
       rows[y]&= ~bit;
       columns[x]&= ~bit;
       quadrants[q]&= ~bit;
@@ -95,7 +101,28 @@ const countSolutions= (matrix, limit= 2)=> {
   };
 
   search();
-  return solutions;
+  return {count: solutions, firstSolution};
+};
+
+/**
+ * Counts the solutions of a sudoku, stopping as soon as `limit` solutions are found.
+ *
+ * @param {list[list[number|null]]} matrix The sudoku, indexed as matrix[y][x], empty cells are null.
+ * @param {number} limit The number of solutions after which the search stops.
+ * @returns {number} The number of solutions found, never more than `limit`. 0 if the givens already break the rules.
+ */
+const countSolutions= (matrix, limit= 2)=> searchSolutions(matrix, limit).count;
+
+/**
+ * Solves a sudoku by backtracking.
+ *
+ * @param {list[list[number|null]]} matrix The sudoku, indexed as matrix[y][x], empty cells are null.
+ * @returns {{solutions: number, solution: list[list[number]]|null}} `solutions` is 0, 1, or 2 for "more than one";
+ *          `solution` is the solution found first (null if there is none).
+ */
+const solve= (matrix)=> {
+  const {count, firstSolution}= searchSolutions(matrix, 2);
+  return {solutions: count, solution: firstSolution};
 };
 
 /**
@@ -104,4 +131,4 @@ const countSolutions= (matrix, limit= 2)=> {
  */
 const hasUniqueSolution= (matrix)=> countSolutions(matrix, 2)=== 1;
 
-module.exports= {countSolutions, hasUniqueSolution};
+module.exports= {countSolutions, hasUniqueSolution, solve};

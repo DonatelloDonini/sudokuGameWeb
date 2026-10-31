@@ -6,6 +6,9 @@ const {Games}= require("./games");
 const {authRouter}= require("./routes/auth");
 const {gamesRouter}= require("./routes/games");
 const {leaderboardRouter}= require("./routes/leaderboard");
+const {publicApiRouter, publicApiCors, requestCost}= require("./routes/publicApi");
+const {generateLevel}= require("./levelGenerator");
+const {rateLimit}= require("./rateLimit");
 
 const DEFAULT_FRONTEND_DIR= path.resolve(__dirname, "../../frontend");
 
@@ -15,15 +18,20 @@ const DEFAULT_FRONTEND_DIR= path.resolve(__dirname, "../../frontend");
  * @param {Object} options
  * @param {boolean} [options.secureCookies]
  * @param {Function} [options.now]
- * @param {Function} [options.generateLevel] Where the single player levels come from (default: generated on demand).
+ * @param {import("./levelPool").LevelPool} [options.levelPool] Where the levels come from (default: generated on demand).
  */
-const createServices= (db, {secureCookies= false, now= Date.now, generateLevel}= {})=> {
+const createServices= (db, {secureCookies= false, now= Date.now, levelPool= null}= {})=> {
   const users= new Users(db);
+  const levels= levelPool
+    ? {take: (difficulty)=> levelPool.take(difficulty), generate: (difficulty)=> levelPool.generate(difficulty)}
+    : {take: generateLevel, generate: async (difficulty)=> generateLevel(difficulty)};
+
   return {
     db,
     users,
+    levels,
     sessions: new Sessions(db, users, {secureCookies}),
-    games: new Games(db, {now, generateLevel}),
+    games: new Games(db, {now, generateLevel: levels.take}),
   };
 };
 
@@ -32,11 +40,22 @@ const createServices= (db, {secureCookies= false, now= Date.now, generateLevel}=
  * @param {Object} options
  * @param {Object} options.services What createServices returns.
  * @param {string} [options.frontendDir] The folder containing the frontend's static files.
+ * @param {number} [options.publicApiRateLimit] Requests (or generated puzzles) per minute and IP on the public API.
+ * @param {string|number|boolean} [options.trustProxy] Express "trust proxy" setting, to get the client IP behind a reverse proxy.
  * @returns {express.Express}
  */
-const createApp= ({services, frontendDir= DEFAULT_FRONTEND_DIR})=> {
+const createApp= ({services, frontendDir= DEFAULT_FRONTEND_DIR, publicApiRateLimit= 60, trustProxy= false})=> {
   const app= express();
   app.disable("x-powered-by");
+  app.set("trust proxy", trustProxy);
+
+  // the public API for other developers: no cookies, any origin, rate limited
+  app.use("/api/v1",
+    publicApiCors,
+    express.json({limit: "16kb"}),
+    rateLimit({limit: publicApiRateLimit, cost: requestCost}),
+    publicApiRouter(services),
+  );
 
   app.use("/api", express.json({limit: "16kb"}));
   app.use("/api", services.sessions.middleware());

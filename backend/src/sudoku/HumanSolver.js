@@ -403,4 +403,41 @@ const solveLogically= (puzzle, maxTier= MAX_TIER)=> {
   return result;
 };
 
-module.exports= {solveLogically, SolverState, TECHNIQUES, MAX_TIER};
+const cellCoords= (cell)=> ({x: columnOf(cell), y: rowOf(cell)});
+
+/**
+ * Finds the next number a person could place, and the deductions needed to get there.\
+ * The steps before the placement only remove candidates: they are the reasoning that makes the placement possible
+ * (for the hardest puzzles, a player who doesn't keep notes needs them explained).
+ *
+ * @param {(number|null)[][]} board indexed as board[y][x], empty cells are null.
+ * @returns {{x: number, y: number, value: number, technique: string,
+ *            steps: {technique: string, eliminations: {x: number, y: number, digits: number[]}[]}[]}|null}
+ *          null if the board is full or can't progress with logic.
+ */
+const nextPlacement= (board)=> {
+  const state= new SolverState(board);
+  const steps= [];
+
+  while (! state.broken && ! state.isSolved()){
+    const valuesBefore= Int8Array.from(state.values);
+    const candidatesBefore= Uint16Array.from(state.candidates);
+
+    const technique= TECHNIQUES.find(candidate=> candidate.apply(state));
+    if (! technique) return null;
+
+    const placed= state.values.findIndex((value, cell)=> value!== valuesBefore[cell]);
+    if (placed!== -1) return {...cellCoords(placed), value: state.values[placed], technique: technique.name, steps};
+
+    const eliminations= [];
+    state.candidates.forEach((candidates, cell)=> {
+      const removed= candidatesBefore[cell] & ~candidates;
+      if (removed) eliminations.push({...cellCoords(cell), digits: digitsOf(removed)});
+    });
+    steps.push({technique: technique.name, eliminations});
+  }
+
+  return null;
+};
+
+module.exports= {solveLogically, nextPlacement, SolverState, TECHNIQUES, MAX_TIER};

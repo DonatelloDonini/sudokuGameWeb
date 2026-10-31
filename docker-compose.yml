@@ -7,6 +7,10 @@ services:
     environment:
       # set to "true" when the game is served over HTTPS
       COOKIE_SECURE: "${COOKIE_SECURE:-false}"
+      # public API requests (or generated puzzles) per minute and IP
+      PUBLIC_API_RATE_LIMIT: "${PUBLIC_API_RATE_LIMIT:-60}"
+      # set when behind a reverse proxy, so the rate limit sees the real client IP (e.g. "1" for one proxy)
+      TRUST_PROXY: "${TRUST_PROXY:-false}"
     volumes:
       - sudoku-data:/app/data
     restart: unless-stopped

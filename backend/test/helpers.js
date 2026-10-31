@@ -7,10 +7,10 @@ const {attachBattleServer}= require("../src/battle/websocket");
 /**
  * Starts the whole server (API + battle websocket) on a random port with an in-memory database.
  */
-const startServer= async (battleOptions= {})=> {
+const startServer= async (battleOptions= {}, appOptions= {})=> {
   const db= openDatabase(":memory:");
   const services= createServices(db);
-  const server= http.createServer(createApp({services}));
+  const server= http.createServer(createApp({services, publicApiRateLimit: 1000, ...appOptions}));
   const battleManager= new BattleManager({db, users: services.users, countdownMs: 0, ...battleOptions});
   const wss= attachBattleServer(server, {sessions: services.sessions, battleManager});
 

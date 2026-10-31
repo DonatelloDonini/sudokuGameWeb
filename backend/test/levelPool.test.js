@@ -1,6 +1,6 @@
 const {test}= require("node:test");
 const assert= require("node:assert/strict");
-const {LevelPool}= require("../src/levelPool");
+const {LevelPool, LevelQueueFullError}= require("../src/levelPool");
 const {DIFFICULTIES}= require("../src/levelGenerator");
 
 const waitFor= async (condition, timeoutMs)=> {
@@ -31,4 +31,19 @@ test("the worker fills the pool with graded levels of every difficulty", {timeou
 test("without the worker, levels are generated on demand", ()=> {
   const pool= new LevelPool();
   assert.equal(pool.take("easy").grade.tier, DIFFICULTIES.easy.tier);
+});
+
+test("generate() refuses new requests when too many are waiting", async ()=> {
+  const pool= new LevelPool({maxQueued: 1});
+  // a worker that never answers
+  pool.worker= {postMessage(){}};
+
+  pool.generate("easy"); // given to the worker
+  pool.generate("easy"); // waiting
+  await assert.rejects(pool.generate("easy"), LevelQueueFullError);
+});
+
+test("generate() works without the worker", async ()=> {
+  const level= await new LevelPool().generate("medium");
+  assert.equal(level.grade.tier, DIFFICULTIES.medium.tier);
 });

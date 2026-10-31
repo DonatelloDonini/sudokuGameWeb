@@ -10,19 +10,33 @@ const PORT= Number(process.env.PORT) || 3000;
 const HOST= process.env.HOST || "0.0.0.0";
 const DATABASE_PATH= process.env.DATABASE_PATH || path.resolve(__dirname, "../data/sudoku.db");
 const SECURE_COOKIES= process.env.COOKIE_SECURE=== "true";
+const PUBLIC_API_RATE_LIMIT= Number(process.env.PUBLIC_API_RATE_LIMIT) || 60;
+
+/**
+ * TRUST_PROXY is passed to express' "trust proxy": "true", a number of hops, or IPs/subnets.
+ */
+const parseTrustProxy= (value)=> {
+  if (value=== undefined || value=== "" || value=== "false") return false;
+  if (value=== "true") return true;
+  return /^\d+$/.test(value) ? Number(value) : value;
+};
 
 const levelPool= new LevelPool();
 levelPool.start();
-const generateLevel= (difficulty)=> levelPool.take(difficulty);
 
 const db= openDatabase(DATABASE_PATH);
-const services= createServices(db, {secureCookies: SECURE_COOKIES, generateLevel});
+const services= createServices(db, {secureCookies: SECURE_COOKIES, levelPool});
 services.sessions.deleteExpired();
 
-const app= createApp({services, frontendDir: process.env.FRONTEND_DIR});
+const app= createApp({
+  services,
+  frontendDir: process.env.FRONTEND_DIR,
+  publicApiRateLimit: PUBLIC_API_RATE_LIMIT,
+  trustProxy: parseTrustProxy(process.env.TRUST_PROXY),
+});
 const server= http.createServer(app);
 
-const battleManager= new BattleManager({db, users: services.users, generate: generateLevel});
+const battleManager= new BattleManager({db, users: services.users, generate: services.levels.take});
 battleManager.start();
 const wss= attachBattleServer(server, {sessions: services.sessions, battleManager});
 
